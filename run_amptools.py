@@ -113,15 +113,24 @@ def gather(output_dir, config_file):
     with open(config_file, 'r') as config:
         config_lines = config.readlines() # read in the lines from the config template file
         parameters = []
+        func_names = []
         for line in config_lines:
             if line.startswith("amplitude"): # find amplitude lines
                 param_name = line.split()[1] # get the parameter name (KsKs::PositiveIm::S0+, for example)
+                func_name = line.split()[2] # get function type (Zlm or TwoPSAngles)
                 parameters.append(param_name) 
+                func_names.append(func_name)
         param_header_list = [] # make a tab-separated header for each parameter
-        for parameter in parameters:
-            if "Re" in parameter: # we use both the Re and Im parameters to calculate one intensity, so ignore the "Im" ones in the header
-                param_header_list.append(parameter.replace("Re", ""))
-                param_header_list.append(parameter.replace("Re", "") +"_err")
+        for i, parameter in enumerate(parameters):
+            if func_names[i] == "Zlm":
+                if "Re" in parameter: # we use both the Re and Im parameters to calculate one intensity, so ignore the "Im" ones in the header
+                    param_header_list.append(parameter.replace("Re", ""))
+                    param_header_list.append(parameter.replace("Re", "") +"_err")
+            elif func_names[i] == "TwoPSAngles":
+                param_header_list.append(parameter)
+                param_header_list.append(parameter + "_err")
+            else:
+                print(f"Function not found: {func_names[i]}")
         param_header_list.append("total_intensity")
         param_header_list.append("total_intensity_err")
         param_header_list.append("likelihood")
@@ -134,7 +143,7 @@ def gather(output_dir, config_file):
                 iteration_num_string = iteration_dir.name
                 fit_file = [fit for fit in iteration_dir.glob("*.fit")][0].resolve() # should be only one .fit file in this directory
                 if "CONVERGED" in fit_file.name: # only collect converged fits
-                    process = subprocess.run(['get_fit_results', str(fit_file), *parameters], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                    process = subprocess.run(['get_fit_results', str(fit_file), func_names[0], *parameters], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{process.stdout}\n") # write fit results to output file (in no particular row order)
 
 
