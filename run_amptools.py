@@ -55,6 +55,7 @@ def run_fit(bin_iterations_seed_reaction_tuple):
     """
     bin_number, iteration, seed, reaction = bin_iterations_seed_reaction_tuple # get info for this run
     log_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.log"
+    err_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.err"
     os.chdir(str(bin_number)) # cd into the bin directory
     Path(f"./{iteration}").mkdir(exist_ok=True) # create a directory for this iteration if it doesn't already exist
     root_files = Path(".").glob("*.root") # get all the ROOT files for this bin
@@ -72,8 +73,10 @@ def run_fit(bin_iterations_seed_reaction_tuple):
     os.chdir(str(iteration)) # cd into the iteration folder
     # run the fit: use the iteration config file, send output to stdout, send errors to sterr
     process = subprocess.run(['fit', '-c', iteration_config_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+    with open(err_file, 'w') as err_writer:
+        err_writer.write(process.stderr) # write any errors to an error file
     with open(log_file, 'w') as log_writer:
-        log_writer.write(process.stderr) # write any errors to a log file
+        log_writer.write(process.stdout) # write output to a log file
     fit_result = process.stdout
     # check if the fit converged, we'll add this to the filename later 
     if "STATUS=CONVERGED" in fit_result:
