@@ -41,7 +41,8 @@ def resample_params(iteration, config_file):
                 line_parts[3] = str(np.random.uniform(low=-100.0, high=100.0))
                 line_parts[4] = str(np.random.uniform(low=-100.0, high=100.0))
                 line = " ".join(line_parts)
-            output_lines.append(line + "\n")
+                line += "\n"
+            output_lines.append(line)
         config.writelines(output_lines) # write the randomized lines to the new output config
     return output_filename
 
@@ -159,10 +160,23 @@ parser.add_argument("-p", "--processes", default=60, type=int, help="number of p
 parser.add_argument("-s", "--seed", default=1, type=int, help="set the seed (default = 1)")
 parser.add_argument("-i", "--iterations", default=1, type=int, help="set the number of fits to perform for each bin")
 parser.add_argument("-c", "--config", required=True, help="path to the AmpTools config template file")
+parser.add_argument("--slurm", action='store_true', help="use SLURM's sbatch command instead of python3 multiprocessing")
+queue_group = parser.add_mutually_exclusive_group()
+queue_group.add_argument('-r', '--red', action='store_true', help="run on red queue (default)")
+queue_group.add_argument('-g', '--green', action='store_true', help="run on green queue")
 if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
     parser.print_help(sys.stderr)
     sys.exit(1)
 args = parser.parse_args()
+if args.green:
+    cpu_memory = 1590
+    threads = 4
+    queue = "green"
+else:
+    cpu_memory = 1990
+    threads = 4
+    queue = "red"
+memory = threads * cpu_memory
 
 bin_directory = Path(args.directory).resolve()
 if bin_directory.is_dir(): # check if directory with all the separated bins exists
@@ -197,9 +211,16 @@ bin_iterations_seed_reaction_tuple = [(i, j, seeds[j], reaction) for i in range(
 # it should also have the same starting parameters, in case that is important later on), and the reaction name
 
 os.chdir(str(bin_directory)) # cd into the directory containing bin subdirectories
+if args.slurm:
+    for tup in tqdm(bin_iterations_seed_reaction_tuple):
+        bin_n, it_n, _, rxn = tup
+        log_out = log_dir / f"{rxn}_{bin_n}_{it_n}_SLURM.out"
+        log_err = log_dir / f"{rxn}_{bin_n}_{it_n}_SLURM.err"
+        os.system(f"sbatch --job-name={rxn}_{bin_n}_{it_n} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error{str(log_err)} --quiet <TODO>")
+else:
+    with Pool(processes=args.processes) as pool: # create a multiprocessing pool
+        res = list(tqdm(pool.imap(run_fit, bin_iterations_seed_reaction_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
+        # imap vs map just spawns an iterator so tqdm can make a progress bar
 
-with Pool(processes=args.processes) as pool: # create a multiprocessing pool
-    res = list(tqdm(pool.imap(run_fit, bin_iterations_seed_reaction_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
-    # imap vs map just spawns an iterator so tqdm can make a progress bar
 
 gather(bin_directory, config_template)
