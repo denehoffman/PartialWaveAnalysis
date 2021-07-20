@@ -141,14 +141,23 @@ def gather(output_dir, config_file):
         param_header = "\t".join(param_header_list)
     with open(output_dir / "fit_results.txt", 'w') as out_file:
         out_file.write(f"Bin\tIteration\t{param_header}\n") # print the header to the output file
-        for bin_dir in [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]: # for each bin subdirectory
+        bin_dirs = [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]
+        bin_converged_total = np.zeroslike(bin_dirs)
+        bin_total_iterations = np.zeroslike(bin_dirs)
+        for bin_dir in bin_dirs: # for each bin subdirectory
             bin_num_string = bin_dir.name
             for iteration_dir in [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()]: # for each iteration subdirectory
                 iteration_num_string = iteration_dir.name
                 fit_file = [fit for fit in iteration_dir.glob("*.fit")][0].resolve() # should be only one .fit file in this directory
+                bin_total_iterations[int(bin_num_string)] += 1
                 if "CONVERGED" in fit_file.name: # only collect converged fits
+                    bin_converged_total[int(bin_num_string)] += 1
                     process = subprocess.run(['get_fit_results', str(fit_file), func_names[0], *parameters], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{process.stdout}\n") # write fit results to output file (in no particular row order)
+        print("Convergence Results:")
+        for i, bin_converged_num in enumerate(bin_converged_total):
+            print(f"Bin {i}: {bin_converged_total}/{bin_total_iterations}\t", end='')
+        print()
 
 
 """
