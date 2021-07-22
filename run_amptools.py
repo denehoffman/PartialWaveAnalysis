@@ -142,8 +142,8 @@ def gather(output_dir, config_file):
     with open(output_dir / "fit_results.txt", 'w') as out_file:
         out_file.write(f"Bin\tIteration\t{param_header}\n") # print the header to the output file
         bin_dirs = [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]
-        bin_converged_total = np.zeroslike(bin_dirs)
-        bin_total_iterations = np.zeroslike(bin_dirs)
+        bin_converged_total = np.zeros_like(bin_dirs)
+        bin_total_iterations = np.zeros_like(bin_dirs)
         for bin_dir in bin_dirs: # for each bin subdirectory
             bin_num_string = bin_dir.name
             for iteration_dir in [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()]: # for each iteration subdirectory
@@ -156,7 +156,7 @@ def gather(output_dir, config_file):
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{process.stdout}\n") # write fit results to output file (in no particular row order)
         print("Convergence Results:")
         for i, bin_converged_num in enumerate(bin_converged_total):
-            print(f"Bin {i}: {bin_converged_total}/{bin_total_iterations}\t", end='')
+            print(f"Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t", end='')
         print()
 
 

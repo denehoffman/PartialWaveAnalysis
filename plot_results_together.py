@@ -1,12 +1,11 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import sys
 
 
-df = pd.read_csv('output/fit_results.txt', delimiter='\t', index_col=False)
-print(df)
+df = pd.read_csv(f'{sys.argv[1]}/fit_results.txt', delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err'], ascending=[True, False, True], inplace=True)
-print(df)
 
 def mask_first(x):
     result = np.zeros_like(x)
@@ -32,4 +31,4 @@ plt.ylim(bottom=-100)
 plt.legend(loc="upper right")
 plt.axhline(0, color='k')
     
-plt.savefig("fig_test_twopsangles_together.png", dpi=300)
+plt.savefig(f"fig_{sys.argv[1]}_together.png", dpi=300)

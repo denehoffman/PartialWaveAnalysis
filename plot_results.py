@@ -1,8 +1,9 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import sys
 
-df = pd.read_csv('output_twopsangles/fit_results.txt', delimiter='\t', index_col=False)
+df = pd.read_csv(f'{sys.argv[1]}/fit_results.txt', delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err'], ascending=[True, False, True], inplace=True)
 
 def mask_first(x):
@@ -35,4 +36,4 @@ axes[indexes[len(amplitudes)]].set_title('Total')
 axes[indexes[len(amplitudes)]].set_xlim(0.9, 2.3)
 axes[indexes[len(amplitudes)]].set_ylim(bottom=0)
     
-plt.savefig("fig_test_twopsangles.png", dpi=300)
+plt.savefig(f"fig_{sys.argv[1]}.png", dpi=300)
