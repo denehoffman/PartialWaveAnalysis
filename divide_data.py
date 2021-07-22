@@ -22,6 +22,7 @@ parser.add_argument("-g", "--generated", help="path to the generated Monte Carlo
 parser.add_argument("-a", "--accepted", help="path to the accepted Monte Carlo  AmpTools ROOT file")
 parser.add_argument("-d", "--data", help="path to the data AmpTools ROOT file")
 parser.add_argument("-b", "--background", help="path to the background AmpTools ROOT file")
+parser.add_argument("-t", "--tree", help="optionally specify the input tree name", default='kin')
 parser.add_argument("-o", "--output", help="path to the output folder")
 parser.add_argument("-c", "--config", help="path to a template amptools config file (keywords are @DATAFILE, @GENFILE, @ACCFILE, and @NIFILE)", required=True)
 
@@ -77,7 +78,9 @@ if args.output != None:
         print(f"Output_Folder: {output_dir}")
 
 
-max_events = 1e9 # Maximum number of events to process, this may need to be modified in the future
+# removed for now, it seems the split_mass program sets a value by default and you can't set this
+# AND set an optional tree name
+#max_events = 1e9 # Maximum number of events to process, this may need to be modified in the future
 
 output_dirs = [output_dir / f"{bin_num}" for bin_num in np.arange(args.n)]
 for bin_dir in output_dirs:
@@ -94,23 +97,23 @@ with open(bin_info_file, 'w') as bin_info_writer:
 # Process Generated
 if args.generated != None:
     print("Splitting Generated Monte Carlo")
-    os.system(f"split_mass {generated_path} {generated_path.stem} {args.low} {args.high} {args.n} {max_events}")
+    os.system(f"split_mass {generated_path} {generated_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Accepted
 if args.accepted != None:
     print("Splitting Accepted Monte Carlo")
-    os.system(f"split_mass {accepted_path} {accepted_path.stem} {args.low} {args.high} {args.n} {max_events}")
+    os.system(f"split_mass {accepted_path} {accepted_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Data
 if args.data != None:
     print("Splitting Data")
-    os.system(f"split_mass {data_path} {data_path.stem} {args.low} {args.high} {args.n} {max_events}")
+    os.system(f"split_mass {data_path} {data_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 
 # Process Background
 if args.background != None:
     print("Splitting Background")
-    os.system(f"split_mass {background_path} {background_path.stem} {args.low} {args.high} {args.n} {max_events}")
+    os.system(f"split_mass {background_path} {background_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Copy in a template config file to each bin and change the @TAG file paths inside to point to the proper files
 for bin_num in np.arange(args.n):
