@@ -106,21 +106,21 @@ if args.generated != None:
     print("Splitting Generated Monte Carlo")
     generated_glob = generated_dir.glob("*.root")
     for generated_path in generated_glob:
-        os.system(f"split_mass {generated_path} {generated_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+        os.system(f"split_mass {generated_path} {generated_path.stem + '_GEN_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Accepted
 if args.accepted != None:
     print("Splitting Accepted Monte Carlo")
     accepted_glob = accepted_dir.glob("*.root")
     for accepted_path in accepted_glob:
-        os.system(f"split_mass {accepted_path} {accepted_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+        os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACC_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Data
 if args.data != None:
     print("Splitting Data")
     data_glob = data_dir.glob("*.root")
     for data_path in data_glob:
-        os.system(f"split_mass {data_path} {data_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+        os.system(f"split_mass {data_path} {data_path.stem + '_DAT_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 
 # Process Background
@@ -128,7 +128,7 @@ if args.background != None:
     print("Splitting Background")
     background_glob = background_dir.glob("*.root")
     for background_path in background_glob:
-        os.system(f"split_mass {background_path} {background_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+        os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Copy in a template config file to each bin and change the @TAG file paths inside to point to the proper files
 for bin_num in np.arange(args.n):

@@ -97,23 +97,23 @@ with open(bin_info_file, 'w') as bin_info_writer:
 # Process Generated
 if args.generated != None:
     print("Splitting Generated Monte Carlo")
-    os.system(f"split_mass {generated_path} {generated_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {generated_path} {generated_path.stem + '_GEN_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Accepted
 if args.accepted != None:
     print("Splitting Accepted Monte Carlo")
-    os.system(f"split_mass {accepted_path} {accepted_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACC_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Data
 if args.data != None:
     print("Splitting Data")
-    os.system(f"split_mass {data_path} {data_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {data_path} {data_path.stem + '_DAT_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 
 # Process Background
 if args.background != None:
     print("Splitting Background")
-    os.system(f"split_mass {background_path} {background_path.stem} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Copy in a template config file to each bin and change the @TAG file paths inside to point to the proper files
 for bin_num in np.arange(args.n):
