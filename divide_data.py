@@ -102,12 +102,12 @@ if args.generated != None:
 # Process Accepted
 if args.accepted != None:
     print("Splitting Accepted Monte Carlo")
-    os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACC_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACCEPT_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 # Process Data
 if args.data != None:
     print("Splitting Data")
-    os.system(f"split_mass {data_path} {data_path.stem + '_DAT_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+    os.system(f"split_mass {data_path} {data_path.stem + '_DATA_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
 
 
 # Process Background
@@ -124,13 +124,13 @@ for bin_num in np.arange(args.n):
         with open(config_path) as config:
             config_text = config.read()
             if args.generated != None:
-                config_text = config_text.replace("@GENFILE", generated_path.stem + f"_{bin_num}.root")
+                config_text = config_text.replace("@GENFILE", generated_path.stem + "_GEN_" + f"_{bin_num}.root")
             if args.accepted != None:
-                config_text = config_text.replace("@ACCFILE", accepted_path.stem + f"_{bin_num}.root")
+                config_text = config_text.replace("@ACCFILE", accepted_path.stem + "_ACCEPT_" + f"_{bin_num}.root")
             if args.data != None:
-                config_text = config_text.replace("@DATAFILE", data_path.stem + f"_{bin_num}.root")
+                config_text = config_text.replace("@DATAFILE", data_path.stem + "_DATA_" + f"_{bin_num}.root")
             if args.background != None:
-                config_text = config_text.replace("@BKGFILE", background_path.stem + f"_{bin_num}.root")
+                config_text = config_text.replace("@BKGFILE", background_path.stem + "_BKG_" + f"_{bin_num}.root")
             config_text = config_text.replace("@NIFILE", f"{bin_num}_ni.txt")
         config_bin_name = config_path.stem + f"_{bin_num}.cfg"
         with open(output_dir / str(bin_num) / config_bin_name, 'w') as config_bin:
