@@ -395,7 +395,7 @@ def main():
                         clear()
                         print("Please select either 'y' or 'n'!")
                     else:
-                        use_background = include_bkg == 'y':
+                        use_background = include_bkg == 'y'
                         answered = True
                 answered = False
                 while not answered:
