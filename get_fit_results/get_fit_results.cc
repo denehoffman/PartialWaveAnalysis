@@ -21,38 +21,42 @@
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    // Parse command line input (fit file, function name, param1, param2, ...)
+    // Parse command line input (fit file, command, param1, param2, ...)
     string fitFile(argv[1]); // 0 is the name of the program
-    string functionType(argv[2]); // Zlm or TwoPSAngles
-    string zlmString("Zlm");
-    string twopsanglesString("TwoPSAngles");
+    string commandType(argv[2]); // command
+    string intensityStr("intensity");
+    string intensityTotalStr("intensityTotal");
+    string likelihoodStr("likelihood");
+    string realImagStr("realImag");
+    string phaseDiffStr("phaseDiff");
     FitResults results(fitFile.c_str()); // create FitResults object
     bool doAcceptanceCorrection = true; // let's hard-code this for now
-    if (functionType == zlmString) {
-        for (int i = 3; i < argc; i+=2) { // for each parameter (order is ###Im::### ###Re::### so we take two args at once)
-            vector<string> amplitudeStringImRe;
-            string amplitudeStringIm(argv[i]);
-            string amplitudeStringRe(argv[i + 1]);
-            amplitudeStringImRe.push_back(amplitudeStringIm.c_str());
-            amplitudeStringImRe.push_back(amplitudeStringRe.c_str());
-            // Use AmpTools FitResults to calculate intensity for each individual wave's contribution
-            pair<double, double> intensityResult = results.intensity(amplitudeStringImRe, doAcceptanceCorrection);
-            cout << intensityResult.first << "\t" << intensityResult.second << "\t";
-        }
-    } else if (functionType == twopsanglesString) {
-        for (int i = 3; i < argc; i++) { // for this function, we only have one parameter
-            vector<string> amplitudeVect;
+    if (commandType = intensityStr) {
+        vector<string> amplitudes;
+        for (int i = 3; i < argc; i++) { 
             string amplitudeString(argv[i]);
-            amplitudeVect.push_back(amplitudeString.c_str());
-            // Use AmpTools FitResults to calculate intensity for each individual wave's contribution
-            pair<double, double> intensityResult = results.intensity(amplitudeVect, doAcceptanceCorrection);
-            cout << intensityResult.first << "\t" << intensityResult.second << "\t";
+            amplitudes.push_back(amplitudeString.c_str());
         }
+        // Use AmpTools FitResults to calculate intensity for each individual wave's (or set of waves) contribution
+        pair<double, double> intensityResult = results.intensity(amplitudes, doAcceptanceCorrection);
+        cout << intensityResult.first << "," << intensityResult.second << endl;
+    } else if (functionType == likelihoodStr) {
+        // Calculate the likelihood
+        cout << results.likelihood() << endl;
+    } else if (functionType == intensityTotalStr) {
+        // Calculate the total intensity from all waves
+        pair<double, double> totalIntensityResult = results.intensity(doAcceptanceCorrection);
+        cout << totalIntensityResult.first << "," << totalIntensityResult.second << endl;
+    } else if (functionType == realimagStr) {
+        // Calculate real and imaginary parts of amplitude
+        string amplitudeString(argv[3]);
+        cout << results.productionParameter(amplitudeString.c_str()).real() << "," << results.productionParameter(amplitudeString.c_str()).imag() << endl;
+    } else if (functionType == phaseDiffStr) {
+        string amplitudeString1(argv[3]);
+        string amplitudeString2(argv[4]);
+        pair<double, double> phase = results.phaseDiff(amplitudeString1.c_str(), amplitudeString2.c_str);
+        cout << phase.first << "," << phase.second << endl;
     } else {
-        cout << "function not found: " << functionType << "\t";
+        cout << "function not found: " << functionType << endl;
     }
-    // Calculate the total intensity from all waves
-    pair<double, double> totalIntensityResult = results.intensity(doAcceptanceCorrection);
-    // Calculate the likelihood
-    cout << totalIntensityResult.first << "\t" << totalIntensityResult.second << "\t" << results.likelihood() << "\t";
 }

@@ -128,9 +128,9 @@ def gather(output_dir, config_file):
         func_names = []
         for line in config_lines:
             if line.startswith("amplitude"): # find amplitude lines
-                param_name = line.split()[1] # get the parameter name (KsKs::PositiveIm::S0+, for example)
+                wave_name = line.split()[1] # get the parameter name (KsKs::PositiveIm::S0+, for example)
                 func_name = line.split()[2] # get function type (Zlm or TwoPSAngles)
-                parameters.append(param_name) 
+                waves.append(wave_name)
                 func_names.append(func_name)
         param_header_list = [] # make a tab-separated header for each parameter
         for i, parameter in enumerate(parameters):
