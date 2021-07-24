@@ -1,4 +1,10 @@
 #!/usr/bin/python3
+import argparse
+from pathlib import Path
+import sys
+import numpy as np
+import subprocess
+from tqdm import tqdm
 
 """
 gather_fits.py: This program collects data from AmpTools fits and stores them in a single location.
@@ -28,40 +34,50 @@ def gather(output_dir, config_file):
     """
     with open(config_file, 'r') as config:
         config_lines = config.readlines() # read in the lines from the config template file
-        parameters = []
-        func_names = []
+        headers = []
+        commands = []
         for line in config_lines:
             if line.startswith("amplitude"): # find amplitude lines
-                param_name = line.split()[1] # get the parameter name (KsKs::PositiveIm::S0+, for example)
-                func_name = line.split()[2] # get function type (Zlm or TwoPSAngles)
-                parameters.append(param_name) 
-                func_names.append(func_name)
-        param_header_list = [] # make a tab-separated header for each parameter
-        for i, parameter in enumerate(parameters):
-            if func_names[i] == "Zlm":
-                if "Re" in parameter: # we use both the Re and Im parameters to calculate one intensity, so ignore the "Im" ones in the header
-                    param_header_list.append(parameter.replace("Re", ""))
-                    param_header_list.append(parameter.replace("Re", "") +"_err")
-            elif func_names[i] == "TwoPSAngles":
-                param_header_list.append(parameter)
-                param_header_list.append(parameter + "_err")
-            else:
-                print(f"Function not found: {func_names[i]}")
-        param_header_list.append("total_intensity")
-        param_header_list.append("total_intensity_err")
-        param_header_list.append("likelihood")
-        param_header = "\t".join(param_header_list)
+                command = []
+                wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
+                wave_parts = wave_name.split("::")
+                if wave_parts[1].endswith("Re"):
+                    command.append("intensity")
+                    for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
+                        command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
+                        command.append(wave_parts[0] + pol + "::" + wave_parts[1].replace("Re", "Im") + "::" + wave_parts[2])
+                    commands.append(command)
+                    headers.append(wave_parts[2])
+                    headers.append(wave_parts[2] + "_err")
+        commands.append(["intensityTotal"])
+        headers.append("total_intensity")
+        headers.append("total_intensity_err")
+        commands.append(["likelihood"])
+        headers.append("likelihood")
     with open(output_dir / "fit_results.txt", 'w') as out_file:
-        out_file.write(f"Bin\tIteration\t{param_header}\n") # print the header to the output file
-        for bin_dir in [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]: # for each bin subdirectory
+        header = "\t".join(headers)
+        out_file.write(f"Bin\tIteration\t{header}\n") # print the header to the output file
+        bin_dirs = [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]
+        bin_converged_total = np.zeros_like(bin_dirs)
+        bin_total_iterations = np.zeros_like(bin_dirs)
+        for bin_dir in tqdm(bin_dirs): # for each bin subdirectory
             bin_num_string = bin_dir.name
             for iteration_dir in [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()]: # for each iteration subdirectory
                 iteration_num_string = iteration_dir.name
                 fit_file = [fit for fit in iteration_dir.glob("*.fit")][0].resolve() # should be only one .fit file in this directory
+                bin_total_iterations[int(bin_num_string)] += 1
                 if "CONVERGED" in fit_file.name: # only collect converged fits
-                    process = subprocess.run(['get_fit_results', str(fit_file), func_names[0], *parameters], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                    out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{process.stdout}\n") # write fit results to output file (in no particular row order)
-
+                    bin_converged_total[int(bin_num_string)] += 1
+                    outputs = []
+                    for command in commands:
+                        process = subprocess.run(['get_fit_results', str(fit_file), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                        outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
+                    output = "\t".join(outputs)
+                    out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{output}\n") # write fit results to output file (in no particular row order)
+        print("Convergence Results:")
+        for i, bin_converged_num in enumerate(bin_converged_total):
+            print(f"Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t", end='')
+        print()
 
 """
 Script begins here:

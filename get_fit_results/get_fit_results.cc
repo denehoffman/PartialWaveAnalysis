@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     string phaseDiffStr("phaseDiff");
     FitResults results(fitFile.c_str()); // create FitResults object
     bool doAcceptanceCorrection = true; // let's hard-code this for now
-    if (commandType = intensityStr) {
+    if (commandType == intensityStr) {
         vector<string> amplitudes;
         for (int i = 3; i < argc; i++) { 
             string amplitudeString(argv[i]);
@@ -39,24 +39,24 @@ int main(int argc, char* argv[]) {
         }
         // Use AmpTools FitResults to calculate intensity for each individual wave's (or set of waves) contribution
         pair<double, double> intensityResult = results.intensity(amplitudes, doAcceptanceCorrection);
-        cout << intensityResult.first << "," << intensityResult.second << endl;
-    } else if (functionType == likelihoodStr) {
+        cout << "#" << intensityResult.first << "\t" << intensityResult.second;
+    } else if (commandType == likelihoodStr) {
         // Calculate the likelihood
-        cout << results.likelihood() << endl;
-    } else if (functionType == intensityTotalStr) {
+        cout << "#" << results.likelihood();
+    } else if (commandType == intensityTotalStr) {
         // Calculate the total intensity from all waves
         pair<double, double> totalIntensityResult = results.intensity(doAcceptanceCorrection);
-        cout << totalIntensityResult.first << "," << totalIntensityResult.second << endl;
-    } else if (functionType == realimagStr) {
+        cout << "#" << totalIntensityResult.first << "\t" << totalIntensityResult.second;
+    } else if (commandType == realImagStr) {
         // Calculate real and imaginary parts of amplitude
         string amplitudeString(argv[3]);
-        cout << results.productionParameter(amplitudeString.c_str()).real() << "," << results.productionParameter(amplitudeString.c_str()).imag() << endl;
-    } else if (functionType == phaseDiffStr) {
+        cout << "#" << results.productionParameter(amplitudeString.c_str()).real() << "\t" << results.productionParameter(amplitudeString.c_str()).imag();
+    } else if (commandType == phaseDiffStr) {
         string amplitudeString1(argv[3]);
         string amplitudeString2(argv[4]);
-        pair<double, double> phase = results.phaseDiff(amplitudeString1.c_str(), amplitudeString2.c_str);
-        cout << phase.first << "," << phase.second << endl;
+        pair<double, double> phase = results.phaseDiff(amplitudeString1.c_str(), amplitudeString2.c_str());
+        cout << "#" << phase.first << "\t" << phase.second;
     } else {
-        cout << "function not found: " << functionType << endl;
+        cout << "function not found: " << commandType;
     }
 }

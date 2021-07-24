@@ -1,0 +1,7 @@
+.*
+*.png
+*.root
+output*
+logs
+!/.gitignore
+input_trees
