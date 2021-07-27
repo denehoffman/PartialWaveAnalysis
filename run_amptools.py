@@ -18,6 +18,8 @@ from pathlib import Path
 from multiprocessing import Pool
 import subprocess
 from tqdm import tqdm
+from colorama import Fore
+import time
 
 def resample_params(iteration, config_file):
     """Reads in an AmpTools configuration file and generates a new file with resampled initial fit parameters.
@@ -122,6 +124,7 @@ def gather(output_dir, config_file):
     :rtype: None
     :return: None
     """
+    print("Gathering Results")
     with open(config_file, 'r') as config:
         config_lines = config.readlines() # read in the lines from the config template file
         headers = []
@@ -166,7 +169,16 @@ def gather(output_dir, config_file):
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{output}\n") # write fit results to output file (in no particular row order)
         print("Convergence Results:")
         for i, bin_converged_num in enumerate(bin_converged_total):
-            print(f"Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t", end='')
+            percent_converged = bin_converged_total[i] / bin_total_iterations[i]
+            if percent_converged == 0:
+                color = Fore.RED
+            elif percent_converged <= 0.25:
+                color = Fore.YELLOW
+            elif percent_converged <=0.80:
+                color = Fore.BLUE
+            else:
+                color = Fore.GREEN
+            print(f"{color}Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t{Fore.WHITE}", end='')
         print()
 
 """
@@ -229,12 +241,27 @@ bin_iterations_seed_reaction_tuple = [(i, j, seeds[j], reaction) for i in range(
 # it should also have the same starting parameters, in case that is important later on), and the reaction name
 
 os.chdir(str(bin_directory)) # cd into the directory containing bin subdirectories
+username = os.getlogin()
 if args.slurm:
     for tup in tqdm(bin_iterations_seed_reaction_tuple):
+        bin_number, iteration, seed, reaction = tup
         bin_n, it_n, _, rxn = tup
         log_out = log_dir / f"{rxn}_{bin_n}_{it_n}_SLURM.out"
         log_err = log_dir / f"{rxn}_{bin_n}_{it_n}_SLURM.err"
-        os.system(f"sbatch --job-name={rxn}_{bin_n}_{it_n} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error{str(log_err)} --quiet <TODO>")
+        os.system(f"sbatch --job-name={rxn}_{bin_n}_{it_n} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)}")
+        time.sleep(2)
+
+finished_running = False
+while not finished_running:
+    n_jobs_queued = len(subprocess.run(['squeue', '-h', '-u', username], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+    n_jobs_running = len(subprocess.run(['squeue', '-h', '-u', username, '-t', 'running'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+    len_queued = len(str(n_jobs_queued - n_jobs_running))
+    len_running = len(str(n_jobs_running))
+    print(f"\r{n_jobs_queued - n_jobs_running} job(s) currently queued, {n_jobs_running} job(s) running", end=" " * (len_queued + len_running + 4))
+    if n_jobs_queued == 0:
+        finished_running = True
+    time.sleep(1)
+
 else:
     with Pool(processes=args.processes) as pool: # create a multiprocessing pool
         res = list(tqdm(pool.imap(run_fit, bin_iterations_seed_reaction_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
