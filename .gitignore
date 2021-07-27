@@ -5,3 +5,7 @@ output*
 logs
 !/.gitignore
 input_trees
+*.cfg
+GENERATED
+ACCEPTED
+DATA

@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import argparse
+import os
 from pathlib import Path
 import sys
 import numpy as np
@@ -63,15 +64,17 @@ def gather(output_dir, config_file):
         bin_total_iterations = np.zeros_like(bin_dirs)
         for bin_dir in tqdm(bin_dirs): # for each bin subdirectory
             bin_num_string = bin_dir.name
-            for iteration_dir in [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()]: # for each iteration subdirectory
+            iter_dirs = [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()] # for each iteration subdirectory
+            for iteration_dir in iter_dirs:
                 iteration_num_string = iteration_dir.name
-                fit_file = [fit for fit in iteration_dir.glob("*.fit")][0].resolve() # should be only one .fit file in this directory
+                fit_files = [fit.resolve() for fit in iteration_dir.glob("*.fit")]
+                latest_fit_file = max(fit_files, key=os.path.getctime)
                 bin_total_iterations[int(bin_num_string)] += 1
-                if "CONVERGED" in fit_file.name: # only collect converged fits
+                if "CONVERGED" in latest_fit_file.name: # only collect converged fits
                     bin_converged_total[int(bin_num_string)] += 1
                     outputs = []
                     for command in commands:
-                        process = subprocess.run(['get_fit_results', str(fit_file), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                        process = subprocess.run(['get_fit_results', str(latest_fit_file), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
                         outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
                     output = "\t".join(outputs)
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{output}\n") # write fit results to output file (in no particular row order)
