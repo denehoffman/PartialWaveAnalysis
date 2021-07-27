@@ -47,14 +47,17 @@ def resample_params(iteration, config_file):
     return output_filename
 
 
-def run_fit(bin_iterations_seed_reaction_tuple):
+def run_fit(bin_number, iteration, seed, reaction, log_dir):
     """Runs an iteration of an AmpTools fit on a given bin.
-    :param bin_iterations_seed_reaction_tuple: tuple(int, int, int, str), contains the bin number, iteration number, seed, and reaction name
+    :param bin_n: the bin number of the fit
+    :param iteration: the iteration number of the fit
+    :param seed: the fit seed
+    :param reaction: the reaction name
 
     :rtype: None
     :return: None
     """
-    bin_number, iteration, seed, reaction = bin_iterations_seed_reaction_tuple # get info for this run
+    log_dir = Path(log_dir).resolve()
     log_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.log"
     err_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.err"
     os.chdir(str(bin_number)) # cd into the bin directory
@@ -96,3 +99,10 @@ def run_fit(bin_iterations_seed_reaction_tuple):
         root_file.unlink() # remove all the ROOT files in the iteration subdirectory (no longer need them)
     os.chdir("../..")
 
+
+def main():
+    run_fit(int(sys.argv[1]), int(sys.argv[2]), int(sys.argv[3]), str(sys.argv[4]), str(sys.argv[5]))
+
+
+if __name__ == "__main__":
+    main()

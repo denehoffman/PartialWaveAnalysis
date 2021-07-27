@@ -5,6 +5,7 @@ import sys
 import numpy as np
 import subprocess
 from tqdm import tqdm
+from colorama import Fore
 
 """
 gather_fits.py: This program collects data from AmpTools fits and stores them in a single location.
@@ -76,7 +77,16 @@ def gather(output_dir, config_file):
                     out_file.write(f"{bin_num_string}\t{iteration_num_string}\t{output}\n") # write fit results to output file (in no particular row order)
         print("Convergence Results:")
         for i, bin_converged_num in enumerate(bin_converged_total):
-            print(f"Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t", end='')
+            percent_converged = bin_converged_total[i] / bin_total_iterations[i]
+            if percent_converged == 0:
+                color = Fore.RED
+            elif percent_converged <= 0.25:
+                color = Fore.YELLOW
+            elif percent_converged <=0.80:
+                color = Fore.BLUE
+            else:
+                color = Fore.GREEN
+            print(f"{color}Bin {i}: {bin_converged_total[i]}/{bin_total_iterations[i]}\t{Fore.WHITE}", end='')
         print()
 
 """
