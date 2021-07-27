@@ -38,8 +38,16 @@ def resample_params(iteration, config_file):
         for line in config_lines:
             if line.startswith('initialize'): # if a line starts with initialize...
                 line_parts = line.split() # split it on spaces and set the 3rd and 4th fields to randoms
-                line_parts[3] = str(np.random.uniform(low=-100.0, high=100.0))
-                line_parts[4] = str(np.random.uniform(low=-100.0, high=100.0))
+                if line_parts[2] == "cartesian":
+                    if line_parts[3] == "@uniform":
+                        line_parts[3] = str(np.random.uniform(low=-100.0, high=100.0))
+                    if line_parts[4] == "@uniform":
+                        line_parts[4] = str(np.random.uniform(low=-100.0, high=100.0))
+                elif line_parts[2] == "polar":
+                    if line_parts[3] == "@uniform":
+                        line_parts[3] = str(np.random.uniform(low=0.0, high=100.0))
+                    if line_parts[4] == "@uniform":
+                        line_parts[4] = str(np.random.uniform(low=0.0, high=2 * np.pi))
                 line = " ".join(line_parts)
                 line += "\n"
             output_lines.append(line)
