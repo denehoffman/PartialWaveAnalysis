@@ -15,9 +15,9 @@ def mask_first(x):
 mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 df_filtered = df.loc[mask]
 
-bin_df = pd.read_csv('output/bin_info.txt', delimiter='\t')
-amplitudes = df.columns[2:-3].to_list()[::2]
-amperrors = df.columns[2:-3].to_list()[1::2]
+bin_df = pd.read_csv(f'{sys.argv[1]}/bin_info.txt', delimiter='\t')
+amplitudes = df.columns[3:-3].to_list()[::2]
+amperrors = df.columns[3:-3].to_list()[1::2]
 
 colors = ['aqua', 'blue', 'chartreuse', 'coral', 'crimson', 'darkblue', 'darkgreen', 'fuchsia', 'gold', 'indigo', 'lime', 'orangered', 'teal', 'sienna']
 for i in range(len(amplitudes)):
