@@ -72,8 +72,8 @@ class Wave:
             return "X"
         return letter
 
-    def get_wave_string(self, real: bool) -> str:
-        output = self.reaction + "::"
+    def get_wave_string(self, real: bool, pol="") -> str:
+        output = self.reaction + "_" + pol + "::"
         if self.e > 0:
             output += "Positive"
         else:
@@ -103,7 +103,11 @@ class Wave:
 
     def get_wave(self, init_real=False, cartesian=True):
         wave_string_real = self.get_wave_string(Wave.REAL)
+        wave_string_real_000 = self.get_wave_string(Wave.REAL, pol="000")
+
         wave_string_imag = self.get_wave_string(Wave.IMAG)
+        wave_string_imag_000 = self.get_wave_string(Wave.IMAG, pol="000")
+
         amplitude_string = f"amplitude {wave_string_real} Zlm {self.l} {self.m} {self.e} +1 LOOPPOLANG LOOPPOLVAL\namplitude {wave_string_imag} Zlm {self.l} {self.m} {self.e} -1 LOOPPOLANG LOOPPOLVAL\n"
 
         if cartesian:
@@ -116,6 +120,8 @@ class Wave:
             initialize_string = f"initialize {wave_string_real} {cartesian_str} @uniform @uniform\n"
 
         constrain_string = f"constrain {wave_string_real} {wave_string_imag}\n"
+        constrain_string += f"constrain {wave_string_real_000} {wave_string_real}\n"
+        constrain_string += f"constrain {wave_string_imag_000} {wave_string_imag}\n"
 
         scale_string = f"scale {wave_string_real} LOOPSCALE\nscale {wave_string_imag} LOOPSCALE\n"
 
