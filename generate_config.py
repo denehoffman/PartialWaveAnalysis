@@ -168,7 +168,7 @@ data {reaction} ROOTDataReader LOOPDATA
 genmc {reaction} ROOTDataReader LOOPGEN
 accmc {reaction} ROOTDataReader LOOPACC\n"""
     if use_background:
-        text += "bkgnd {reaction} ROOTDataReader LOOPBKG\n"
+        text += f"bkgnd {reaction} ROOTDataReader LOOPBKG\n"
 
     text += f"reaction {reaction} " + input("Enter the particles in the reaction separated by spaces (i.e. gamma Proton Ks1 Ks2): ") + "\n\n"
 
