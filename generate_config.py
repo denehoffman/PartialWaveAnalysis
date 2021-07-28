@@ -73,7 +73,7 @@ class Wave:
         return letter
 
     def get_wave_string(self, real: bool, pol="") -> str:
-        output = self.reaction + "_" + pol + "::"
+        output = self.reaction + pol + "::"
         if self.e > 0:
             output += "Positive"
         else:
@@ -103,10 +103,10 @@ class Wave:
 
     def get_wave(self, init_real=False, cartesian=True):
         wave_string_real = self.get_wave_string(Wave.REAL)
-        wave_string_real_000 = self.get_wave_string(Wave.REAL, pol="000")
+        wave_string_real_000 = self.get_wave_string(Wave.REAL, pol="_000")
 
         wave_string_imag = self.get_wave_string(Wave.IMAG)
-        wave_string_imag_000 = self.get_wave_string(Wave.IMAG, pol="000")
+        wave_string_imag_000 = self.get_wave_string(Wave.IMAG, pol="_000")
 
         amplitude_string = f"amplitude {wave_string_real} Zlm {self.l} {self.m} {self.e} +1 LOOPPOLANG LOOPPOLVAL\namplitude {wave_string_imag} Zlm {self.l} {self.m} {self.e} -1 LOOPPOLANG LOOPPOLVAL\n"
 
