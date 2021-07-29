@@ -162,7 +162,7 @@ loop LOOPPOLANG polAngle_000 polAngle_045 polAngle_090 polAngle_135 polAngle_AMO
 loop LOOPPOLVAL polVal_000 polVal_045 polVal_090 polVal_135 polVal_AMO
 loop LOOPSCALE [polScale_000] [polScale_045] [polScale_090] [polScale_135] [polScale_AMO]
 
-normintfile KsKs LOOPNIFILE
+normintfile {reaction} LOOPNIFILE
 
 data {reaction} ROOTDataReader LOOPDATA
 genmc {reaction} ROOTDataReader LOOPGEN
