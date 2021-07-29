@@ -129,7 +129,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir):
         commands.append(["likelihood"])
 
     with open("fit_results.txt", 'w') as out_file:
-        if convergence == 'C' or convergence == 'F':
+        if convergence == 'C' or convergence == 'L':
             outputs = []
             for command in commands:
                 process = subprocess.run(['get_fit_results', str(fit_output_destination), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
