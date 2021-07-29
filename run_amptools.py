@@ -126,14 +126,14 @@ def run_fit(bin_iterations_seed_reaction_tuple):
                     commands.append(command)
         commands.append(["intensityTotal"])
         commands.append(["likelihood"])
-
     with open("fit_results.txt", 'w') as out_file:
-        outputs = []
-        for command in commands:
-            process = subprocess.run(['get_fit_results', str(fit_output_destination), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-            outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
-        output = "\t".join(outputs)
-        out_file.write(f"{bin_number}\t{iteration}\t{convergence}\t{output}\n") # write fit results to output file (in no particular row order)
+        if convergence == 'C' or convergence == 'L':
+            outputs = []
+            for command in commands:
+                process = subprocess.run(['get_fit_results', str(fit_output_destination), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
+                outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
+            output = "\t".join(outputs)
+            out_file.write(f"{bin_number}\t{iteration}\t{convergence}\t{output}\n") # write fit results to output file (in no particular row order)
     os.chdir("../..")
 
 
