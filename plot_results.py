@@ -39,13 +39,13 @@ print("Plotting Separate Amplitudes")
 # Positive
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='b')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='r')
     axes[indexes[i]].set_title(amplitudes_pos[i].split("::")[-1][:-1])
 
 # Negative
 for i in range(len(amplitudes_neg)):
     print(amplitudes_neg[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='r')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='b')
     axes[indexes[i]].set_title(amplitudes_neg[i].split("::")[-1][:-1])
 
 for i in range(n_amps):
