@@ -30,7 +30,7 @@ amperrors_neg = [a for a in amperrors if a.endswith("-_err")]
 n_amps = max(len(amplitudes_pos), len(amplitudes_neg))
 
 nrows = int(np.ceil(np.sqrt(n_amps + 1)))
-plt.rcParams["figure.figsize"] = (10, 10)
+plt.rcParams["figure.figsize"] = (20, 10)
 fig, axes = plt.subplots(nrows=nrows, ncols=nrows)
 fig.tight_layout()
 indexes = [idx for idx in np.ndindex(axes.shape)]
@@ -39,24 +39,19 @@ print("Plotting Separate Amplitudes")
 # Positive
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='b')
     axes[indexes[i]].set_title(amplitudes_pos[i].split("::")[-1][:-1])
-    axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-    axes[indexes[i]].set_ylim(bottom=0)
 
 # Negative
 for i in range(len(amplitudes_neg)):
     print(amplitudes_neg[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='r')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='r')
     axes[indexes[i]].set_title(amplitudes_neg[i].split("::")[-1][:-1])
-    axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
+
+for i in range(n_amps):
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='.', color='k')
     axes[indexes[i]].set_ylim(bottom=0)
-
-
-axes[indexes[n_amps]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='b')
-axes[indexes[n_amps]].set_title('Total')
-axes[indexes[n_amps]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-axes[indexes[n_amps]].set_ylim(bottom=0)
+    axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
 
 plt.savefig(f"fig_{input_folder.stem}.png", dpi=300)
 plt.close()
