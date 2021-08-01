@@ -3,10 +3,16 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.backends.backend_pdf
 import sys
 from pathlib import Path
 
 input_folder = Path(sys.argv[1]).resolve()
+xlabel = r"$m(K_SK_S)\ GeV/c^2$"
+if len(sys.argv) == 3:
+    xlabel = rf"${sys.argv[2]}$"
+
+pdf = matplotlib.backends.backend_pdf.PdfPages(f"figs_{input_folder.stem}.pdf")
 
 df = pd.read_csv(input_folder / 'fit_results.txt', delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err'], ascending=[True, False, True], inplace=True)
@@ -29,37 +35,40 @@ amperrors_neg = [a for a in amperrors if a.endswith("-_err")]
 
 n_amps = max(len(amplitudes_pos), len(amplitudes_neg))
 
-nrows = int(np.ceil(np.sqrt(n_amps + 1)))
+nrows = int(np.ceil(np.sqrt(n_amps)))
 plt.rcParams["figure.figsize"] = (20, 10)
+plt.rcParams["font.size"] = 24
 fig, axes = plt.subplots(nrows=nrows, ncols=nrows)
-fig.tight_layout()
 indexes = [idx for idx in np.ndindex(axes.shape)]
 
 print("Plotting Separate Amplitudes")
 # Positive
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='r')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='r', label=r'$+\epsilon$')
     axes[indexes[i]].set_title(amplitudes_pos[i].split("::")[-1][:-1])
 
 # Negative
 for i in range(len(amplitudes_neg)):
     print(amplitudes_neg[i])
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='b')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='b', label=r'$-\epsilon$')
     axes[indexes[i]].set_title(amplitudes_neg[i].split("::")[-1][:-1])
 
 for i in range(n_amps):
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='.', color='k')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='.', color='k', label='Total')
     axes[indexes[i]].set_ylim(bottom=0)
     axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
+    axes[indexes[i]].set_ylabel("Intensity")
+    axes[indexes[i]].set_xlabel(xlabel)
+    axes[indexes[i]].legend()
 
-plt.savefig(f"fig_{input_folder.stem}.png", dpi=300)
-plt.close()
+plt.tight_layout()
+pdf.savefig(fig, dpi=300)
 
 colors = ['aqua', 'blue', 'chartreuse', 'coral', 'crimson', 'darkblue', 'darkgreen', 'fuchsia', 'gold', 'indigo', 'lime', 'orangered', 'teal', 'sienna']
 
 print("Plotting Combined Amplitudes")
-plt.figure()
+fig = plt.figure()
 if len(amplitudes_pos) != 0:
     print("Positive Only")
     for i in range(len(amplitudes_pos)):
@@ -71,10 +80,10 @@ if len(amplitudes_pos) != 0:
     plt.legend(loc="upper right")
     plt.axhline(0, color='k')
     plt.title("Positive Reflectivity")
-    plt.savefig(f"fig_{input_folder.stem}_together_pos", dpi=300)
-    plt.close()
+    plt.tight_layout()
+    pdf.savefig(fig, dpi=300)
  
-plt.figure()
+fig = plt.figure()
 if len(amplitudes_neg) != 0:
     print("Negative Only")
     for i in range(len(amplitudes_neg)):
@@ -86,11 +95,11 @@ if len(amplitudes_neg) != 0:
     plt.legend(loc="upper right")
     plt.axhline(0, color='k')
     plt.title("Negative Reflectivity")
-    plt.savefig(f"fig_{input_folder.stem}_together_neg", dpi=300)
-    plt.close()
+    plt.tight_layout()
+    pdf.savefig(fig, dpi=300)
  
 print("Positive and Negative Combined")
-plt.figure()
+fig = plt.figure()
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
     plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=amplitudes_pos[i].split("::")[-1])
@@ -105,5 +114,7 @@ plt.ylim(bottom=-100)
 plt.legend(loc="upper right")
 plt.axhline(0, color='k')
 plt.title("Fit Results")
-plt.savefig(f"fig_{input_folder.stem}_together", dpi=300)
-plt.close()
+plt.tight_layout()
+pdf.savefig(fig, dpi=300)
+
+pdf.close()
