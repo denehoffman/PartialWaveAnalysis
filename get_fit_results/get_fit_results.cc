@@ -49,8 +49,11 @@ int main(int argc, char* argv[]) {
         cout << "#" << totalIntensityResult.first << "\t" << totalIntensityResult.second;
     } else if (commandType == realImagStr) {
         // Calculate real and imaginary parts of amplitude
-        string amplitudeString(argv[3]);
-        cout << "#" << results.productionParameter(amplitudeString.c_str()).real() << "\t" << results.productionParameter(amplitudeString.c_str()).imag();
+        cout << "#"
+        for (int i = 3; i < argc; i++) {
+            string amplitudeString(argv[i]);
+            cout << results.productionParameter(amplitudeString.c_str()).real() << "\t" << results.productionParameter(amplitudeString.c_str()).imag();
+        }
     } else if (commandType == phaseDiffStr) {
         string amplitudeString1(argv[3]);
         string amplitudeString2(argv[4]);
