@@ -46,13 +46,25 @@ print("Plotting Separate Amplitudes")
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
     axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='r', label=r'$+\epsilon$')
-    axes[indexes[i]].set_title(amplitudes_pos[i].split("::")[-1][:-1])
+    amp_letter = amplitudes_pos[i].split("::")[-1][0]
+    amp_m = amplitudes_pos[i].split("::")[-1][1]
+    if int(amp_m) > 0:
+        amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
+    else:
+        amp_m_sign = ""
+    axes[indexes[i]].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 
 # Negative
 for i in range(len(amplitudes_neg)):
     print(amplitudes_neg[i])
     axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='b', label=r'$-\epsilon$')
-    axes[indexes[i]].set_title(amplitudes_neg[i].split("::")[-1][:-1])
+    amp_letter = amplitudes_neg[i].split("::")[-1][0]
+    amp_m = amplitudes_neg[i].split("::")[-1][1]
+    if int(amp_m) > 0:
+        amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+    else:
+        amp_m_sign = ""
+    axes[indexes[i]].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 
 for i in range(n_amps):
     axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='.', color='k', label='Total')
@@ -73,13 +85,21 @@ if len(amplitudes_pos) != 0:
     print("Positive Only")
     for i in range(len(amplitudes_pos)):
         print(amplitudes_pos[i])
-        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=amplitudes_pos[i].split("::")[-1][:-1])
+        amp_letter = amplitudes_pos[i].split("::")[-1][0]
+        amp_m = amplitudes_pos[i].split("::")[-1][1]
+        if int(amp_m) > 0:
+            amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
+        else:
+            amp_m_sign = ""
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
     plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
     plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
     plt.ylim(bottom=-100)
     plt.legend(loc="upper right")
     plt.axhline(0, color='k')
     plt.title("Positive Reflectivity")
+    plt.ylabel("Intensity")
+    plt.xlabel(xlabel)
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
  
@@ -88,13 +108,21 @@ if len(amplitudes_neg) != 0:
     print("Negative Only")
     for i in range(len(amplitudes_neg)):
         print(amplitudes_neg[i])
-        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=amplitudes_neg[i].split("::")[-1][:-1])
+        amp_letter = amplitudes_neg[i].split("::")[-1][0]
+        amp_m = amplitudes_neg[i].split("::")[-1][1]
+        if int(amp_m) > 0:
+            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+        else:
+            amp_m_sign = ""
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
     plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
     plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
     plt.ylim(bottom=-100)
     plt.legend(loc="upper right")
     plt.axhline(0, color='k')
     plt.title("Negative Reflectivity")
+    plt.ylabel("Intensity")
+    plt.xlabel(xlabel)
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
  
@@ -102,11 +130,23 @@ print("Positive and Negative Combined")
 fig = plt.figure()
 for i in range(len(amplitudes_pos)):
     print(amplitudes_pos[i])
-    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=amplitudes_pos[i].split("::")[-1])
+    amp_letter = amplitudes_pos[i].split("::")[-1][0]
+    amp_m = amplitudes_pos[i].split("::")[-1][1]
+    if int(amp_m) > 0:
+        amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
+    else:
+        amp_m_sign = ""
+    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
 
 for i in range(len(amplitudes_neg)):
     print(amplitudes_neg[i])
-    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='--', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=amplitudes_neg[i].split("::")[-1])
+    amp_letter = amplitudes_neg[i].split("::")[-1][0]
+    amp_m = amplitudes_neg[i].split("::")[-1][1]
+    if int(amp_m) > 0:
+        amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+    else:
+        amp_m_sign = ""
+    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='--', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
 
 plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
@@ -114,6 +154,8 @@ plt.ylim(bottom=-100)
 plt.legend(loc="upper right")
 plt.axhline(0, color='k')
 plt.title("Fit Results")
+plt.ylabel("Intensity")
+plt.xlabel(xlabel)
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
 
