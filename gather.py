@@ -19,7 +19,7 @@ gather_fits.py: This program collects data from AmpTools fits and stores them in
     Creation Date: 13 July 2021
 """
 
-def gather(output_dir, config_file):
+def gather(output_dir, config_file, bootstrap):
     """Gathers cumulative results of fits, calculates intensities with get_fit_results, and outputs to a tab-separated file
 
     This method goes through all the bin directories, finds converged fits, and runs a C program that uses IUAmpTools/FitResults.h
@@ -56,7 +56,11 @@ def gather(output_dir, config_file):
         headers.append("total_intensity")
         headers.append("total_intensity_err")
         headers.append("likelihood")
-    with open(output_dir / "fit_results.txt", 'w') as out_file:
+    if bootstrap:
+        output_file_name = "bootstrap.txt"
+    else:
+        output_file_name = "fit_results.txt"
+    with open(output_dir / output_file_name, 'w') as out_file:
         header = "\t".join(headers)
         out_file.write(f"Bin\tIteration\tConvergence\t{header}\n") # print the header to the output file
         bin_dirs = [bindir for bindir in output_dir.glob("*") if bindir.is_dir()]
@@ -67,9 +71,15 @@ def gather(output_dir, config_file):
             iter_dirs = [iterdir for iterdir in bin_dir.glob("*") if iterdir.is_dir()] # for each iteration subdirectory
             for iteration_dir in iter_dirs:
                 iteration_num_string = iteration_dir.name
-                fit_files = [fit.resolve() for fit in iteration_dir.glob("*.fit")]
+                if bootstrap:
+                    fit_files = [fit.resolve() for fit in iteration_dir.glob("*.bootstrap")]
+                else:
+                    fit_files = [fit.resolve() for fit in iteration_dir.glob("*.fit")]
                 latest_fit_file = max(fit_files, key=os.path.getctime)
-                fit_results = iteration_dir / "fit_results.txt"
+                if bootstrap:
+                    fit_results = iteration_dir / "bootstrap.txt"
+                else:
+                    fit_results = iteration_dir / "fit_results.txt"
                 bin_total_iterations[int(bin_num_string)] += 1
                 if "CONVERGED" in latest_fit_file.name: # only collect converged fits
                     bin_converged_total[int(bin_num_string)] += 1
@@ -95,6 +105,7 @@ Script begins here:
 parser = argparse.ArgumentParser(description="Runs AmpTools fits on each mass bin")
 parser.add_argument("-d", "--directory", required=True, help="the input directory (output of divide_data.py)")
 parser.add_argument("-c", "--config", required=True, help="path to the AmpTools config template file")
+parser.add_argument("--bootstrap", action='store_true', help="use bootstrapping (must have run a fit already and run bootstrap.py)")
 if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
     parser.print_help(sys.stderr)
     sys.exit(1)
@@ -112,4 +123,4 @@ if config_template.is_file(): # check if config file exists
 else:
     raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
 
-gather(bin_directory, config_template)
+gather(bin_directory, config_template, args.bootstrap)
