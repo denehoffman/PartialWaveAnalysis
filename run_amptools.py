@@ -111,9 +111,8 @@ def run_fit(bin_iterations_seed_reaction_tuple):
 
     # Get the fit results here
     with open(destination, 'r') as config:
-        config_lines = config.readlines() # read in the lines from the config template file
         commands = []
-        for line in config_lines:
+        for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 command = []
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
@@ -124,6 +123,15 @@ def run_fit(bin_iterations_seed_reaction_tuple):
                         command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
                         command.append(wave_parts[0] + pol + "::" + wave_parts[1].replace("Re", "Im") + "::" + wave_parts[2])
                     commands.append(command)
+        command = ["realImag"]
+        for line in config.readlines():
+            if line.startswith("amplitude"):
+                wave_name = line.split()[1].strip() # get the parameter name
+                wave_parts = wave_name.split("::")
+                if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
+                    for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
+                        command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
+        commands.append(command)
         commands.append(["intensityTotal"])
         commands.append(["likelihood"])
     with open("fit_results.txt", 'w') as out_file:
@@ -156,15 +164,21 @@ def gather(output_dir, config_file):
     """
     print("Gathering Results")
     with open(config_file, 'r') as config:
-        config_lines = config.readlines() # read in the lines from the config template file
         headers = []
-        for line in config_lines:
+        for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
                 wave_parts = wave_name.split("::")
                 if wave_parts[1].endswith("Re"):
                     headers.append(wave_parts[2])
                     headers.append(wave_parts[2] + "_err")
+        for line in config.readlines():
+            if line.startswith("amplitude"): # find amplitude lines
+                wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
+                wave_parts = wave_name.split("::")
+                if wave_parts[1].endswith("Re"):
+                    headers.append(wave_parts[2] + "_re")
+                    headers.append(wave_parts[2] + "_im")
         headers.append("total_intensity")
         headers.append("total_intensity_err")
         headers.append("likelihood")

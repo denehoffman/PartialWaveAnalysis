@@ -38,15 +38,21 @@ def gather(output_dir, config_file):
     """
     print("Gathering Results")
     with open(config_file, 'r') as config:
-        config_lines = config.readlines() # read in the lines from the config template file
         headers = []
-        for line in config_lines:
+        for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
                 wave_parts = wave_name.split("::")
                 if wave_parts[1].endswith("Re"):
                     headers.append(wave_parts[2])
                     headers.append(wave_parts[2] + "_err")
+        for line in config.readlines():
+            if line.startswith("amplitude"): # find amplitude lines
+                wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
+                wave_parts = wave_name.split("::")
+                if wave_parts[1].endswith("Re"):
+                    headers.append(wave_parts[2] + "_re")
+                    headers.append(wave_parts[2] + "_im")
         headers.append("total_intensity")
         headers.append("total_intensity_err")
         headers.append("likelihood")
