@@ -26,7 +26,7 @@ mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 df_filtered = df.loc[mask]
 
 bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
-amplitudes = df.columns[3:-3].to_list()[::2]
+amplitudes = [column for column in df.columns[3:-3].to_list()[::2] if not (column.endswith("_re") or column.endswith("_im"))]
 amplitudes_pos = [a for a in amplitudes if a.endswith("+")]
 amplitudes_neg = [a for a in amplitudes if a.endswith("-")]
 amperrors = df.columns[3:-3].to_list()[1::2]

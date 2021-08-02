@@ -53,10 +53,7 @@ int main(int argc, char* argv[]) {
         for (int i = 3; i < argc; i++) {
             string amplitudeString(argv[i]);
             cout << results.productionParameter(amplitudeString.c_str()).real() << "\t" << results.productionParameter(amplitudeString.c_str()).imag();
-<<<<<<< HEAD
-=======
         }
->>>>>>> c341cf6a22fc93730392ceffb0c3c1320359b727
     } else if (commandType == phaseDiffStr) {
         string amplitudeString1(argv[3]);
         string amplitudeString2(argv[4]);
