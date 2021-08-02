@@ -20,7 +20,7 @@ class Wave:
     NEGATIVE = -1
     letter_dict = {0: "S", 1: "P", 2: "D"}
 
-    def __init__(self, reaction: str, l: int, m: int, e: int, bootstrap=False):
+    def __init__(self, reaction: str, l: int, m: int, e: int):
         assert abs(m) <= l, f"-L <= M <= L is required!\tL = {l}\t M = {m}"
         assert abs(e) == 1, f"Reflectivity must be unitary!\t|{e}| != 1"
         assert l >= 0, f"L must be non-negative!\tL = {l}"
@@ -28,7 +28,6 @@ class Wave:
         self.l = l
         self.m = m
         self.e = e
-        self.bootstrap = bootstrap
 
     def __str__(self):
         if self.m > 0:
@@ -118,15 +117,9 @@ class Wave:
         else:
             cartesian_str = "polar"
         if init_real:
-            if self.bootstrap:
-                initialize_string = f"initialize {wave_string_real} cartesian @bootstrap_re @bootstrap_im real\n"
-            else:
-                initialize_string = f"initialize {wave_string_real} {cartesian_str} @uniform 0.0 real\n"
+            initialize_string = f"initialize {wave_string_real} {cartesian_str} @uniform 0.0 real\n"
         else:
-            if self.bootstrap:
-                initialize_string = f"initialize {wave_string_real} cartesian @bootstrap_re @bootstrap_im\n"
-            else:
-                initialize_string = f"initialize {wave_string_real} {cartesian_str} @uniform @uniform\n"
+            initialize_string = f"initialize {wave_string_real} {cartesian_str} @uniform @uniform\n"
 
         constrain_string = f"constrain {wave_string_real} {wave_string_imag}\n"
         constrain_string += f"constrain {wave_string_real_000} {wave_string_real}\n"
@@ -137,7 +130,7 @@ class Wave:
         return amplitude_string, initialize_string, constrain_string, scale_string
 
 
-def generate_config(reaction, waves, n_pos, n_neg, use_background, use_cartesian, use_bootstrap=False, boostrap_seed=1):
+def generate_config(reaction, waves, n_pos, n_neg, use_background, use_cartesian):
     text = f"""define polVal_000 0.3519
 define polVal_045 0.3374
 define polVal_090 0.3303
@@ -173,13 +166,6 @@ loop LOOPSCALE [polScale_000] [polScale_045] [polScale_090] [polScale_135] [polS
 
 normintfile {reaction} LOOPNIFILE\n"""
 
-if use_bootstrap:
-    text += f"""data {reaction} ROOTDataReaderBootstrap {boostrap_seed} LOOPDATA
-genmc {reaction} ROOTDataReaderBootstrap {boostrap_seed} LOOPGEN
-accmc {reaction} ROOTDataReaderBootstrap {boostrap_seed} LOOPACC\n"""
-    if use_background:
-        text += f"bkgnd {reaction} ROOTDataReaderBootstrap {boostrap_seed} LOOPBKG\n"
-else:
     text += f"""data {reaction} ROOTDataReader LOOPDATA
 genmc {reaction} ROOTDataReader LOOPGEN
 accmc {reaction} ROOTDataReader LOOPACC\n"""
@@ -239,7 +225,7 @@ accmc {reaction} ROOTDataReader LOOPACC\n"""
 
 def print_waves(wave_set):
     print("╔═════════════════════════════════════════╗")
-    wave_list = list(waves)
+    wave_list = list(wave_set)
     wave_list.sort()
     s_waves = "\n".join(["║ " + str(wave) + " ║" for wave in wave_list if wave.l == 0])
     p_waves = "\n".join(["║ " + str(wave) + " ║" for wave in wave_list if wave.l == 1])
@@ -260,23 +246,6 @@ def print_waves(wave_set):
         print(d_waves)
         print("╚═════════════════════════════════════════╝")
     print()
-
-
-def bootstrap(fit_results_file, wave_set): # including the active wave set for future-proofing
-    df = pd.read_csv(fit_results_file, delimiter='\t', index_col=False)
-    df.sort_values(['Bin', 'likelihood', 'total_intensity_err'], ascending=[True, False, True], inplace=True)
-
-    def mask_first(x):
-        result = np.zeros_like(x)
-        result[0] = 1
-        return result
-
-    mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
-    df_filtered = df.loc[mask]
-    bin_df = pd.read_csv(fit_results_file.parent / 'bin_info.txt', delimiter='\t')
-    high_mass = bin_df.iloc[0]['mass']
-    low_mass = bin_df.iloc[-1]['mass']
-    n_bins = len(bin_df)
 
 
 def file_menu(root=Path(".")):
@@ -308,7 +277,7 @@ def main():
     waves = set()
 
     main_menu_title = f"AmpTools Configuration Generator\n"
-    main_menu_items = ["Add Wave", "Remove Wave", "Generate", "Bootstrap", "Exit"]
+    main_menu_items = ["Add Wave", "Remove Wave", "Generate", "Exit"]
     main_menu_cursor = "> "
     main_menu_cursor_style = ("fg_red", "bold")
     main_menu_style = ("bg_black", "fg_green")
@@ -472,18 +441,6 @@ def main():
                         use_cartesian = cartesian == 'c'
                         answered = True
                 generate_config(reaction, wave_list, n_pos, n_neg, use_background, use_cartesian)
-        elif main_sel == 3: # Bootstrap
-            file_selected = False
-            current_path = Path(".").resolve()
-            while not file_selected:
-                current_path = file_menu(current_path)
-                if current_path == None:
-                    file_selected = True
-                elif current_path.name == "fit_results.txt":
-                    file_selected = True
-                    bootstrap(current_path.resolve(), waves)
-                else:
-                    current_path = current_path.resolve()
         else:
             main_menu_exit = True
             clear()
