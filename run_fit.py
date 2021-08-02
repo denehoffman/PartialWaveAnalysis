@@ -130,8 +130,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir):
                 wave_name = line.split()[1].strip() # get the parameter name
                 wave_parts = wave_name.split("::")
                 if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
-                    for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
-                        command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
+                    command.append(wave_parts[0] + "_000" + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
         commands.append(command)
         commands.append(["intensityTotal"])
         commands.append(["likelihood"])

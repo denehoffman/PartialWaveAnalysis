@@ -49,7 +49,7 @@ int main(int argc, char* argv[]) {
         cout << "#" << totalIntensityResult.first << "\t" << totalIntensityResult.second;
     } else if (commandType == realImagStr) {
         // Calculate real and imaginary parts of amplitude
-        cout << "#"
+        cout << "#";
         for (int i = 3; i < argc; i++) {
             string amplitudeString(argv[i]);
             cout << results.productionParameter(amplitudeString.c_str()).real() << "\t" << results.productionParameter(amplitudeString.c_str()).imag();
