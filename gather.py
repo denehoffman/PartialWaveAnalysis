@@ -37,8 +37,8 @@ def gather(output_dir, config_file, bootstrap):
     :return: None
     """
     print("Gathering Results")
+    headers = []
     with open(config_file, 'r') as config:
-        headers = []
         for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
@@ -46,6 +46,7 @@ def gather(output_dir, config_file, bootstrap):
                 if wave_parts[1].endswith("Re"):
                     headers.append(wave_parts[2])
                     headers.append(wave_parts[2] + "_err")
+    with open(config_file, 'r') as config:
         for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
@@ -53,9 +54,9 @@ def gather(output_dir, config_file, bootstrap):
                 if wave_parts[1].endswith("Re"):
                     headers.append(wave_parts[2] + "_re")
                     headers.append(wave_parts[2] + "_im")
-        headers.append("total_intensity")
-        headers.append("total_intensity_err")
-        headers.append("likelihood")
+    headers.append("total_intensity")
+    headers.append("total_intensity_err")
+    headers.append("likelihood")
     if bootstrap:
         output_file_name = "bootstrap.txt"
     else:
