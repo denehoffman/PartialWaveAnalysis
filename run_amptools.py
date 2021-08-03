@@ -39,7 +39,7 @@ def resample_params(iteration, config_file):
         output_lines = []
         for line in config_lines:
             if "@seed" in line:
-                line = line.replace("@seed", np.random.randint(1, high=100000))
+                line = line.replace("@seed", str(np.random.randint(1, high=100000)))
             if line.startswith('initialize'): # if a line starts with initialize...
                 line_parts = line.split() # split it on spaces and set the 3rd and 4th fields to randoms
                 if line_parts[2] == "cartesian":
