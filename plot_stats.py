@@ -29,7 +29,7 @@ bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
 amplitudes = [column for column in df.columns[3:-3].to_list()[::2] if not (column.endswith("_re") or column.endswith("_im"))]
 amplitudes_pos = [a for a in amplitudes if a.endswith("+")]
 amplitudes_neg = [a for a in amplitudes if a.endswith("-")]
-amperrors = df.columns[3:-3].to_list()[1::2]
+amperrors = [column for column in df.columns[3:-3].to_list()[1::2] if not (column.endswith("_re") or column.endswith("_im"))]
 amperrors_pos = [a for a in amperrors if a.endswith("+_err")]
 amperrors_neg = [a for a in amperrors if a.endswith("-_err")]
 
@@ -42,7 +42,7 @@ plt.rcParams["font.size"] = 24
 print("Plotting Separate Amplitudes")
 # Positive
 for i in range(len(amplitudes)):
-    print(amplitudes[i])
+    print(amplitudes[i] + "\t±\t" + amperrors[i])
     fig = plt.figure()
     all_runs_by_bin = [df[amplitudes[i]].loc[df['Bin'] == bin_n] for bin_n in bin_df['bin']]
     plt.scatter(bin_df['mass'].iloc[df['Bin']], df[amplitudes[i]], marker='.', color='k', label="Fit Minima")
@@ -57,7 +57,7 @@ for i in range(len(amplitudes)):
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
 
-
+print("Plotting Total Intensity")
 fig = plt.figure()
 all_runs_by_bin = [df['total_intensity'].loc[df['Bin'] == bin_n] for bin_n in bin_df['bin']]
 plt.scatter(bin_df['mass'].iloc[df['Bin']], df['total_intensity'], marker='.', color='k', label="Fit Minima")
@@ -72,6 +72,7 @@ plt.legend()
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
 
+print("Plotting Log(Likelihood)")
 fig = plt.figure()
 all_runs_by_bin = [df['likelihood'].loc[df['Bin'] == bin_n] for bin_n in bin_df['bin']]
 plt.scatter(bin_df['mass'].iloc[df['Bin']], df['likelihood'], marker='.', color='k', label="Fit Minima")
@@ -85,6 +86,7 @@ plt.legend()
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
 
+print("Plotting Total Intensity Error")
 fig = plt.figure()
 all_runs_by_bin = [df['total_intensity_err'].loc[df['Bin'] == bin_n] for bin_n in bin_df['bin']]
 plt.scatter(bin_df['mass'].iloc[df['Bin']], df['total_intensity_err'], marker='.', color='k', label="Fit Minima")
