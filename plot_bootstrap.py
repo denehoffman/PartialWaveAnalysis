@@ -39,23 +39,37 @@ n_amps = max(len(amplitudes_pos), len(amplitudes_neg))
 nrows = int(np.ceil(np.sqrt(n_amps)))
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.rcParams["font.size"] = 24
-print(df_bootstrap.head())
 
 ############# Histograms
-n_bins = 20
+n_bins = 30
 for bin_n in range(len(bin_df)):
     print(bin_n)
     fig, axes = plt.subplots(nrows=2, ncols=n_amps)
     for i, amp in enumerate(amplitudes_pos):
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
-        axes[0, i].hist(df_conv.loc[:, amp], bins=n_bins, label=f"Var: {df_conv.loc[:, amp].var()}")
+        axes[0, i].hist(df_conv.loc[:, amp], bins=n_bins, label=rf"$\sigma$: {int(df_conv.loc[:, amp].std())}")
         axes[0, i].legend()
+        amp_letter = amplitudes_neg[i].split("::")[-1][0]
+        amp_m = amplitudes_neg[i].split("::")[-1][1]
+        if int(amp_m) > 0:
+            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+        else:
+            amp_m_sign = ""
+        axes[0, i].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
     for i, amp in enumerate(amplitudes_neg):
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
-        axes[1, i].hist(df_conv.loc[:, amp], bins=n_bins, label=f"Var: {df_conv.loc[:, amp].var()}")
+        axes[1, i].hist(df_conv.loc[:, amp], bins=n_bins, label=rf"$\sigma$: {int(df_conv.loc[:, amp].std())}")
         axes[1, i].legend()
+        amp_letter = amplitudes_neg[i].split("::")[-1][0]
+        amp_m = amplitudes_neg[i].split("::")[-1][1]
+        if int(amp_m) > 0:
+            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+        else:
+            amp_m_sign = ""
+        axes[1, i].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+    fig.suptitle(f"Bin {bin_n} Bootstrapped Distributions")
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
     plt.close()
@@ -66,9 +80,15 @@ for amp in amplitudes:
     for bin_n in range(len(bin_df)):
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
-        amp_bootstrap_errors.append(df_conv.loc[:, amp].var())
+        amp_bootstrap_errors.append(df_conv.loc[:, amp].std())
     df_filtered.loc[:, f"{amp}_bootstrap_err"] = amp_bootstrap_errors
-    print(df_filtered)
+
+amp_bootstrap_errors = []
+for bin_n in range(len(bin_df)):
+    df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
+    df_conv = df_bin[df_bin['Convergence'] == 'C']
+    amp_bootstrap_errors.append(df_conv.loc[:, amp].std())
+df_filtered.loc[:, f"total_bootstrap_err"] = amp_bootstrap_errors
 
 amperrors = [column for column in df_filtered.columns.to_list() if "bootstrap" in column]
 amperrors_pos = [a for a in amperrors if a.endswith("+_bootstrap_err")]
@@ -105,7 +125,7 @@ for i in range(len(amplitudes_neg)):
     axes[indexes[i]].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 
 for i in range(n_amps):
-    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='.', color='k', label='Total')
+    axes[indexes[i]].errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='.', color='k', label='Total')
     axes[indexes[i]].set_ylim(bottom=0)
     axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
     axes[indexes[i]].set_ylabel("Intensity")
@@ -131,7 +151,7 @@ if len(amplitudes_pos) != 0:
         else:
             amp_m_sign = ""
         plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
-    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
+    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
     plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
     plt.ylim(bottom=-100)
     plt.legend(loc="upper right")
@@ -155,7 +175,7 @@ if len(amplitudes_neg) != 0:
         else:
             amp_m_sign = ""
         plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
-    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
+    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
     plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
     plt.ylim(bottom=-100)
     plt.legend(loc="upper right")
@@ -189,7 +209,7 @@ for i in range(len(amplitudes_neg)):
         amp_m_sign = ""
     plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], linestyle='--', linewidth=1, elinewidth=0.5, marker='.', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
 
-plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
+plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], linestyle='-', linewidth=1, elinewidth=0.5, marker='.', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
 plt.ylim(bottom=-100)
 plt.legend(loc="upper right")
