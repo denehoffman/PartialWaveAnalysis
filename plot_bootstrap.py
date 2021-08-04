@@ -33,69 +33,72 @@ bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
 #############
 
 amplitudes = [column for column in df.columns[3:-3].to_list()[::2] if not (column.endswith("_re") or column.endswith("_im"))]
-amplitudes_pos = [a for a in amplitudes if a.endswith("+")]
-amplitudes_neg = [a for a in amplitudes if a.endswith("-")]
 
-n_amps = max(len(amplitudes_pos), len(amplitudes_neg))
+wave_set = set([amp[:-1] for amp in amplitudes])
+wave_dict = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4}
+waves_sorted = sorted(list(wave_set), key=lambda wave: 100 * wave_dict[wave[0]] + (-1 if wave[-1] == '-' else 1) * int(wave[1]))
+# kind of sneaky wave of sorting waves by L-letter and M-number without creating a whole new class
 
-nrows = int(np.ceil(np.sqrt(n_amps)))
+n_amps = len(waves_sorted) + 1 # plus 1 for the total plot
+
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.rcParams["font.size"] = 24
-
-def gaussian(x, A, mu, sigma):
-    return A * np.exp(-np.power((x - mu), 2) / (2 * np.power(sigma, 2)))
 
 ############# Histograms
 n_bins = 30
 for bin_n in range(len(bin_df)):
     print(bin_n)
     fig, axes = plt.subplots(nrows=2, ncols=n_amps)
-    for i, amp in enumerate(amplitudes_pos):
+    for i, wave in enumerate(waves_sorted):
+        print(wave, end='\t')
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
-        amp_max = df_conv.loc[:, amp].max()
-        amp_min = df_conv.loc[:, amp].min()
-        correct_value = df_filtered[amp][bin_n]
-        correct_gaussian = lambda x, A, sigma: gaussian(x, A, correct_value, sigma)
-        entries, bins = np.histogram(df_conv.loc[:, amp], bins=np.linspace(amp_min, amp_max, n_bins))
-        bin_centers = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
-        popt, _ = curve_fit(correct_gaussian, xdata=bin_centers, ydata=entries, p0=[1, 1])
-        #popt2, _ = curve_fit(gaussian, xdata=bin_centers, ydata=entries, p0=[1, correct_value, 1])
-        axes[0, i].bar(bin_centers, entries, width=bins[1] - bins[0], color='navy', label=rf"$\mu$: {int(df_conv.loc[:, amp].mean())}, $\sigma$: {int(df_conv.loc[:, amp].std())}")
-        xs = np.linspace(amp_min, amp_max, 2000)
-        axes[0, i].plot(xs, correct_gaussian(xs, *popt), color='darkorange', linewidth=2.5, label=rf"$\mu_G$: {int(correct_value)}, $\sigma_G$: {abs(int(popt[1]))}")
-        #axes[0, i].plot(xs, gaussian(xs, *popt2), color='darkorange', linestyle='--', linewidth=2.5, label=rf"$\mu_F$: {int(popt2[1])}, $\sigma_F$: {abs(int(popt2[2]))}")
-        axes[0, i].legend()
-        amp_letter = amplitudes_neg[i].split("::")[-1][0]
-        amp_m = amplitudes_neg[i].split("::")[-1][1]
-        if int(amp_m) > 0:
-            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
-        else:
-            amp_m_sign = ""
-        axes[0, i].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
-    for i, amp in enumerate(amplitudes_neg):
-        df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
-        df_conv = df_bin[df_bin['Convergence'] == 'C']
-        amp_max = df_conv.loc[:, amp].max()
-        amp_min = df_conv.loc[:, amp].min()
-        correct_value = df_filtered[amp][bin_n]
-        correct_gaussian = lambda x, A, sigma: gaussian(x, A, correct_value, sigma)
-        entries, bins = np.histogram(df_conv.loc[:, amp], bins=np.linspace(amp_min, amp_max, n_bins))
-        bin_centers = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
-        popt, _ = curve_fit(correct_gaussian, xdata=bin_centers, ydata=entries, p0=[1, 1])
-        #popt2, _ = curve_fit(gaussian, xdata=bin_centers, ydata=entries, p0=[1, correct_value, 1])
-        axes[1, i].bar(bin_centers, entries, width=bins[1] - bins[0], color='navy', label=rf"$\mu$: {int(df_conv.loc[:, amp].mean())}, $\sigma$: {int(df_conv.loc[:, amp].std())}")
-        xs = np.linspace(amp_min, amp_max, 2000)
-        axes[1, i].plot(xs, correct_gaussian(xs, *popt), color='darkorange', linewidth=2.5, label=rf"$\mu_G$: {int(correct_value)}, $\sigma_G$: {abs(int(popt[1]))}")
-        #axes[1, i].plot(xs, gaussian(xs, *popt2), color='darkorange', linestyle='--', linewidth=2.5, label=rf"$\mu_F$: {int(popt2[1])}, $\sigma_F$: {abs(int(popt2[2]))}")
-        axes[1, i].legend()
-        amp_letter = amplitudes_neg[i].split("::")[-1][0]
-        amp_m = amplitudes_neg[i].split("::")[-1][1]
-        if int(amp_m) > 0:
-            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
-        else:
-            amp_m_sign = ""
-        axes[1, i].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+        wave_pos = wave + "+"
+        if wave_pos in amplitudes:
+            print("+e", end='\t')
+            amp_max = df_conv.loc[:, wave_pos].max()
+            amp_min = df_conv.loc[:, wave_pos].min()
+            correct_value = df_filtered[wave_pos][bin_n]
+            entries, bins = np.histogram(df_conv.loc[:, wave_pos], bins=np.linspace(amp_min, amp_max, n_bins))
+            bin_centers = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
+            axes[0, i].bar(bin_centers, entries, width=bins[1] - bins[0], color='navy', label=rf"$\mu$: {int(df_conv.loc[:, wave_pos].mean())}, $\sigma$: {int(df_conv.loc[:, wave_pos].std())}")
+            axes[0, i].legend()
+            amp_letter = wave[0] 
+            amp_m = wave[1]
+            if int(amp_m) > 0:
+                amp_m_sign = wave[2]
+            else:
+                amp_m_sign = ""
+            axes[0, i].set_title(rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
+
+        wave_neg = wave + "-"
+        if wave_neg in amplitudes:
+            print("-e", end='\t')
+            amp_max = df_conv.loc[:, wave_neg].max()
+            amp_min = df_conv.loc[:, wave_neg].min()
+            correct_value = df_filtered[wave_neg][bin_n]
+            entries, bins = np.histogram(df_conv.loc[:, wave_neg], bins=np.linspace(amp_min, amp_max, n_bins))
+            bin_centers = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
+            axes[1, i].bar(bin_centers, entries, width=bins[1] - bins[0], color='navy', label=rf"$\mu$: {int(df_conv.loc[:, wave_neg].mean())}, $\sigma$: {int(df_conv.loc[:, wave_neg].std())}")
+            axes[1, i].legend()
+            amp_letter = wave[0] 
+            amp_m = wave[1]
+            if int(amp_m) > 0:
+                amp_m_sign = wave[2]
+            else:
+                amp_m_sign = ""
+            axes[1, i].set_title(rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
+        print()
+    print("tot")
+    amp_max = df_conv.loc[:, 'total_intensity'].max()
+    amp_min = df_conv.loc[:, 'total_intensity'].min()
+    correct_value = df_filtered['total_intensity'][bin_n]
+    entries, bins = np.histogram(df_conv.loc[:, 'total_intensity'], bins=np.linspace(amp_min, amp_max, n_bins))
+    bin_centers = np.array([0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)])
+    axes[1, -1].bar(bin_centers, entries, width=bins[1] - bins[0], color='navy', label=rf"$\mu$: {int(df_conv.loc[:, 'total_intensity'].mean())}, $\sigma$: {int(df_conv.loc[:, 'total_intensity'].std())}")
+    axes[1, -1].legend()
+    axes[1, -1].set_title("Total Intensity")
+        
     fig.suptitle(f"Bin {bin_n} Bootstrapped Distributions")
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
@@ -121,131 +124,131 @@ amperrors = [column for column in df_filtered.columns.to_list() if "bootstrap" i
 amperrors_pos = [a for a in amperrors if a.endswith("+_bootstrap_err")]
 amperrors_neg = [a for a in amperrors if a.endswith("-_bootstrap_err")]
 
-
-fig, axes = plt.subplots(nrows=nrows, ncols=nrows)
-indexes = [idx for idx in np.ndindex(axes.shape)]
-
-
+############ Plot new error bars on fits
 print("Plotting Separate Amplitudes")
-# Positive
-for i in range(len(amplitudes_pos)):
-    print(amplitudes_pos[i])
-    axes[indexes[i]].errorbar(bin_df['mass'], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color='r', label=r'$+\epsilon$')
-    amp_letter = amplitudes_pos[i].split("::")[-1][0]
-    amp_m = amplitudes_pos[i].split("::")[-1][1]
+for wave in waves_sorted:
+    fig = plt.figure()
+    print(wave, end='\t')
+    # wave = S0, P1+, D2-, etc. -- no reflectivity info
+    amp_letter = wave[0]
+    amp_m = wave[1]
     if int(amp_m) > 0:
-        amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
+        amp_m_sign = wave[2]
     else:
         amp_m_sign = ""
-    axes[indexes[i]].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 
-# Negative
-for i in range(len(amplitudes_neg)):
-    print(amplitudes_neg[i])
-    axes[indexes[i]].errorbar(bin_df['mass'], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color='b', label=r'$-\epsilon$')
-    amp_letter = amplitudes_neg[i].split("::")[-1][0]
-    amp_m = amplitudes_neg[i].split("::")[-1][1]
-    if int(amp_m) > 0:
-        amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
+    wave_pos = wave + "+"
+    if wave_pos in amplitudes:
+        print("+e", end='\t')
+        plt.errorbar(bin_df['mass'], df_filtered[wave_pos], yerr=df_filtered[wave_pos + "_bootstrap_err"], elinewidth=0.5, fmt='o', color='r', label=r'$+\epsilon$')
     else:
-        amp_m_sign = ""
-    axes[indexes[i]].set_title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+        print("", end='\t')
 
-for i in range(n_amps):
-    axes[indexes[i]].errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='.', color='k', label='Total')
-    axes[indexes[i]].set_ylim(bottom=0)
-    axes[indexes[i]].set_xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-    axes[indexes[i]].set_ylabel("Intensity")
-    axes[indexes[i]].set_xlabel(xlabel)
-    axes[indexes[i]].legend()
+    wave_neg = wave + "-"
+    if wave_neg in amplitudes:
+        print("-e", end='\t')
+        plt.errorbar(bin_df['mass'], df_filtered[wave_neg], yerr=df_filtered[wave_neg + "_bootstrap_err"], elinewidth=0.5, fmt='o', color='b', label=r'$-\epsilon$')
+    else:
+        print("", end='\t')
+    # Plot total
+    print("tot")
+    plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='o', color='k', label='Total')
+    plt.title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+    plt.ylim(bottom=0)
+    plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
+    plt.ylabel("Intensity")
+    plt.xlabel(xlabel)
+    plt.legend()
+    plt.tight_layout()
+    pdf.savefig(fig, dpi=300)
 
-plt.tight_layout()
-pdf.savefig(fig, dpi=300)
-plt.close()
-
-colors = ['aqua', 'blue', 'chartreuse', 'coral', 'crimson', 'darkblue', 'darkgreen', 'fuchsia', 'gold', 'indigo', 'lime', 'orangered', 'teal', 'sienna']
+colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan"]
 
 print("Plotting Combined Amplitudes")
+print("Positive Reflectivity")
 fig = plt.figure()
-if len(amplitudes_pos) != 0:
-    print("Positive Only")
-    for i in range(len(amplitudes_pos)):
-        print(amplitudes_pos[i])
-        amp_letter = amplitudes_pos[i].split("::")[-1][0]
-        amp_m = amplitudes_pos[i].split("::")[-1][1]
-        if int(amp_m) > 0:
-            amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
-        else:
-            amp_m_sign = ""
-        plt.errorbar(bin_df['mass'], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
-    plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='.', color='k', label="Total")
-    plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-    plt.ylim(bottom=-100)
-    plt.legend(loc="upper right")
-    plt.axhline(0, color='k')
-    plt.title("Positive Reflectivity")
-    plt.ylabel("Intensity")
-    plt.xlabel(xlabel)
-    plt.tight_layout()
-    pdf.savefig(fig, dpi=300)
-    plt.close()
- 
-fig = plt.figure()
-if len(amplitudes_neg) != 0:
-    print("Negative Only")
-    for i in range(len(amplitudes_neg)):
-        print(amplitudes_neg[i])
-        amp_letter = amplitudes_neg[i].split("::")[-1][0]
-        amp_m = amplitudes_neg[i].split("::")[-1][1]
-        if int(amp_m) > 0:
-            amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
-        else:
-            amp_m_sign = ""
-        plt.errorbar(bin_df['mass'], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='.', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
-    plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='.', color='k', label="Total")
-    plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-    plt.ylim(bottom=-100)
-    plt.legend(loc="upper right")
-    plt.axhline(0, color='k')
-    plt.title("Negative Reflectivity")
-    plt.ylabel("Intensity")
-    plt.xlabel(xlabel)
-    plt.tight_layout()
-    pdf.savefig(fig, dpi=300)
-    plt.close()
- 
-print("Positive and Negative Combined")
-fig = plt.figure()
-for i in range(len(amplitudes_pos)):
-    print(amplitudes_pos[i])
-    amp_letter = amplitudes_pos[i].split("::")[-1][0]
-    amp_m = amplitudes_pos[i].split("::")[-1][1]
+for i, wave in enumerate(waves_sorted):
+    amp_letter = wave[0]
+    amp_m = wave[1]
     if int(amp_m) > 0:
-        amp_m_sign = amplitudes_pos[i].split("::")[-1][2]
+        amp_m_sign = wave[2]
     else:
         amp_m_sign = ""
-    plt.errorbar(bin_df['mass'], df_filtered[amplitudes_pos[i]], yerr=df_filtered[amperrors_pos[i]], elinewidth=0.5, fmt='.', color=colors[i], label=rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
 
-for i in range(len(amplitudes_neg)):
-    print(amplitudes_neg[i])
-    amp_letter = amplitudes_neg[i].split("::")[-1][0]
-    amp_m = amplitudes_neg[i].split("::")[-1][1]
-    if int(amp_m) > 0:
-        amp_m_sign = amplitudes_neg[i].split("::")[-1][2]
-    else:
-        amp_m_sign = ""
-    plt.errorbar(bin_df['mass'], df_filtered[amplitudes_neg[i]], yerr=df_filtered[amperrors_neg[i]], elinewidth=0.5, fmt='d', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
-
-plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='.', color='k', label="Total")
+    wave_pos = wave + "+"
+    if wave_pos in amplitudes:
+        print(wave + "\t+e")
+        plt.errorbar(bin_df['mass'], df_filtered[wave_pos], yerr=df_filtered[wave_pos + "_bootstrap_err"], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+print("tot")
+plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-plt.ylim(bottom=-100)
+plt.ylim(bottom=0)
 plt.legend(loc="upper right")
-plt.axhline(0, color='k')
-plt.title("Fit Results")
+plt.title("Positive Reflectivity")
 plt.ylabel("Intensity")
 plt.xlabel(xlabel)
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
-plt.close()
+
+print("Negative Reflectivity")
+fig = plt.figure()
+for i, wave in enumerate(waves_sorted):
+    amp_letter = wave[0]
+    amp_m = wave[1]
+    if int(amp_m) > 0:
+        amp_m_sign = wave[2]
+    else:
+        amp_m_sign = ""
+
+    wave_neg = wave + "-"
+    if wave_neg in amplitudes:
+        print(wave + "\t\t-e")
+        plt.errorbar(bin_df['mass'], df_filtered[wave_neg], yerr=df_filtered[wave_neg + "_bootstrap_err"], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+print("tot")
+plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
+plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
+plt.ylim(bottom=0)
+plt.legend(loc="upper right")
+plt.title("Negative Reflectivity")
+plt.ylabel("Intensity")
+plt.xlabel(xlabel)
+plt.tight_layout()
+pdf.savefig(fig, dpi=300)
+
+print("Positive and Negative Reflectivity")
+fig = plt.figure()
+for i, wave in enumerate(waves_sorted):
+    amp_letter = wave[0]
+    amp_m = wave[1]
+    if int(amp_m) > 0:
+        amp_m_sign = wave[2]
+    else:
+        amp_m_sign = ""
+
+    wave_pos = wave + "+"
+    print(wave, end='\t')
+    if wave_pos in amplitudes:
+        print("+e", end='\t')
+        plt.errorbar(bin_df['mass'], df_filtered[wave_pos], yerr=df_filtered[wave_pos + "_bootstrap_err"], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
+    else:
+        print("", end='\t')
+
+    wave_neg = wave + "-"
+    if wave_neg in amplitudes:
+        print("-e", end='\t')
+        plt.errorbar(bin_df['mass'], df_filtered[wave_neg], yerr=df_filtered[wave_neg + "_bootstrap_err"], elinewidth=0.5, fmt='s', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
+    else:
+        print("", end='\t')
+    print()
+print("tot")
+plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
+plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
+plt.ylim(bottom=0)
+plt.legend(loc="upper right")
+plt.title("All Waves")
+plt.ylabel("Intensity")
+plt.xlabel(xlabel)
+plt.tight_layout()
+pdf.savefig(fig, dpi=300)
 
 pdf.close()

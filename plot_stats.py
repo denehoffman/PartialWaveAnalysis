@@ -27,15 +27,8 @@ df_filtered = df.loc[mask]
 
 bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
 amplitudes = [column for column in df.columns[3:-3].to_list()[::2] if not (column.endswith("_re") or column.endswith("_im"))]
-amplitudes_pos = [a for a in amplitudes if a.endswith("+")]
-amplitudes_neg = [a for a in amplitudes if a.endswith("-")]
 amperrors = [column for column in df.columns[3:-3].to_list()[1::2] if not (column.endswith("_re") or column.endswith("_im"))]
-amperrors_pos = [a for a in amperrors if a.endswith("+_err")]
-amperrors_neg = [a for a in amperrors if a.endswith("-_err")]
 
-n_amps = max(len(amplitudes_pos), len(amplitudes_neg))
-
-nrows = int(np.ceil(np.sqrt(n_amps + 1)))
 plt.rcParams["figure.figsize"] = (30, 10)
 plt.rcParams["font.size"] = 24
 

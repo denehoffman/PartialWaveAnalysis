@@ -76,7 +76,7 @@ for wave in waves_sorted:
     plt.tight_layout()
     pdf.savefig(fig, dpi=300)
 
-colors = ['aqua', 'blue', 'chartreuse', 'coral', 'crimson', 'darkblue', 'darkgreen', 'fuchsia', 'gold', 'indigo', 'lime', 'orangered', 'teal', 'sienna']
+colors = ["tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple", "tab:brown", "tab:pink", "tab:gray", "tab:olive", "tab:cyan"]
 
 print("Plotting Combined Amplitudes")
 print("Positive Reflectivity")
@@ -96,9 +96,8 @@ for i, wave in enumerate(waves_sorted):
 print("tot")
 plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-plt.ylim(bottom=-100)
+plt.ylim(bottom=0)
 plt.legend(loc="upper right")
-plt.axhline(0, color='k')
 plt.title("Positive Reflectivity")
 plt.ylabel("Intensity")
 plt.xlabel(xlabel)
@@ -122,9 +121,8 @@ for i, wave in enumerate(waves_sorted):
 print("tot")
 plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-plt.ylim(bottom=-100)
+plt.ylim(bottom=0)
 plt.legend(loc="upper right")
-plt.axhline(0, color='k')
 plt.title("Negative Reflectivity")
 plt.ylabel("Intensity")
 plt.xlabel(xlabel)
@@ -159,9 +157,8 @@ for i, wave in enumerate(waves_sorted):
 print("tot")
 plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_intensity_err'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
-plt.ylim(bottom=-100)
+plt.ylim(bottom=0)
 plt.legend(loc="upper right")
-plt.axhline(0, color='k')
 plt.title("All Waves")
 plt.ylabel("Intensity")
 plt.xlabel(xlabel)
