@@ -182,8 +182,10 @@ def gather(output_dir, config_file, bootstrap):
                 wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
                 wave_parts = wave_name.split("::")
                 if wave_parts[1].endswith("Re"):
-                    headers.append(wave_parts[2])
-                    headers.append(wave_parts[2] + "_err")
+                    headers.append(wave_parts[2] + "_INT")
+                    headers.append(wave_parts[2] + "_err_INT")
+                    headers.append(wave_parts[2] + "_AC_INT")
+                    headers.append(wave_parts[2] + "_err_AC_INT")
     with open(config_file, 'r') as config:
         for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
@@ -194,6 +196,8 @@ def gather(output_dir, config_file, bootstrap):
                     headers.append(wave_parts[2] + "_im")
     headers.append("total_intensity")
     headers.append("total_intensity_err")
+    headers.append("total_intensity_AC")
+    headers.append("total_intensity_err_AC")
     headers.append("likelihood")
     if bootstrap:
         output_file_name = "bootstrap.txt"

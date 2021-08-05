@@ -30,23 +30,28 @@ int main(int argc, char* argv[]) {
     string realImagStr("realImag");
     string phaseDiffStr("phaseDiff");
     FitResults results(fitFile.c_str()); // create FitResults object
-    bool doAcceptanceCorrection = true; // let's hard-code this for now
     if (commandType == intensityStr) {
+        bool doAcceptanceCorrection = true;
         vector<string> amplitudes;
         for (int i = 3; i < argc; i++) { 
             string amplitudeString(argv[i]);
             amplitudes.push_back(amplitudeString.c_str());
         }
         // Use AmpTools FitResults to calculate intensity for each individual wave's (or set of waves) contribution
+        pair<double, double> intensityResultAC = results.intensity(amplitudes, doAcceptanceCorrection);
+        doAcceptanceCorrection = false;
         pair<double, double> intensityResult = results.intensity(amplitudes, doAcceptanceCorrection);
-        cout << "#" << intensityResult.first << "\t" << intensityResult.second;
+        cout << "#" << intensityResult.first << "\t" << intensityResult.second << "\t" << intensityResultAC.first << "\t" << intensityResultAC.second;
     } else if (commandType == likelihoodStr) {
         // Calculate the likelihood
         cout << "#" << results.likelihood();
     } else if (commandType == intensityTotalStr) {
         // Calculate the total intensity from all waves
+        bool doAcceptanceCorrection = true;
+        pair<double, double> totalIntensityResultAC = results.intensity(doAcceptanceCorrection);
+        doAcceptanceCorrection = false;
         pair<double, double> totalIntensityResult = results.intensity(doAcceptanceCorrection);
-        cout << "#" << totalIntensityResult.first << "\t" << totalIntensityResult.second;
+        cout << "#" << totalIntensityResult.first << "\t" << totalIntensityResult.second << "\t" << totalIntensityResultAC.first << "\t" << totalIntensityResultAC.second;
     } else if (commandType == realImagStr) {
         // Calculate real and imaginary parts of amplitude
         cout << "#";
