@@ -106,23 +106,36 @@ for bin_n in range(len(bin_df)):
 
 ############# Bootstrap errors
 for amp in amplitudes:
+    alpha = 0.05
     amp_bootstrap_errors = []
+    amp_bootstrap_CIL = []
+    amp_bootstrap_CIU = []
     for bin_n in range(len(bin_df)):
+        fit_value = df_filtered[amp][bin_n]
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
-        amp_bootstrap_errors.append(df_conv.loc[:, amp].std()) # Using mean of distribution for now, no fit
+        amp_bootstrap_errors.append(df_conv.loc[:, amp].std()) # Using mean of distribution for now
+        amp_bootstrap_CIL.append(2 * fit_value - np.quantile(df_conv.loc[:, amp], 1 - alpha / 2))
+        amp_bootstrap_CIU.append(2 * fit_value - np.quantile(df_conv.loc[:, amp], alpha / 2))
+
     df_filtered.loc[:, f"{amp}_bootstrap_err"] = amp_bootstrap_errors
+    df_filtered.loc[:, f"{amp}_bootstrap_CIL"] = amp_bootstrap_CIL
+    df_filtered.loc[:, f"{amp}_bootstrap_CIU"] = amp_bootstrap_CIU
 
 amp_bootstrap_errors = []
+amp_bootstrap_CIL = []
+amp_bootstrap_CIU = []
+alpha = 0.05
 for bin_n in range(len(bin_df)):
+    fit_value = df_filtered['total_intensity'][bin_n]
     df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
     df_conv = df_bin[df_bin['Convergence'] == 'C']
-    amp_bootstrap_errors.append(df_conv.loc[:, amp].std())
+    amp_bootstrap_errors.append(df_conv.loc[:, 'total_intensity'].std())
+    amp_bootstrap_CIL.append(2 * fit_value - np.quantile(df_conv.loc[:, 'total_intensity'], 1 - alpha / 2))
+    amp_bootstrap_CIU.append(2 * fit_value - np.quantile(df_conv.loc[:, 'total_intensity'], alpha / 2))
 df_filtered.loc[:, f"total_bootstrap_err"] = amp_bootstrap_errors
-
-amperrors = [column for column in df_filtered.columns.to_list() if "bootstrap" in column]
-amperrors_pos = [a for a in amperrors if a.endswith("+_bootstrap_err")]
-amperrors_neg = [a for a in amperrors if a.endswith("-_bootstrap_err")]
+df_filtered.loc[:, f"total_bootstrap_CIL"] = amp_bootstrap_CIL
+df_filtered.loc[:, f"total_bootstrap_CIU"] = amp_bootstrap_CIU
 
 ############ Plot new error bars on fits
 print("Plotting Separate Amplitudes")
@@ -141,6 +154,7 @@ for wave in waves_sorted:
     if wave_pos in amplitudes:
         print("+e", end='\t')
         plt.errorbar(bin_df['mass'], df_filtered[wave_pos], yerr=df_filtered[wave_pos + "_bootstrap_err"], elinewidth=0.5, fmt='o', color='r', label=r'$+\epsilon$')
+        plt.fill_between(bin_df['mass'], df_filtered[wave_pos + "_bootstrap_CIL"], df_filtered[wave_pos + "_bootstrap_CIU"], color='r', alpha=0.1)
     else:
         print("", end='\t')
 
@@ -148,11 +162,13 @@ for wave in waves_sorted:
     if wave_neg in amplitudes:
         print("-e", end='\t')
         plt.errorbar(bin_df['mass'], df_filtered[wave_neg], yerr=df_filtered[wave_neg + "_bootstrap_err"], elinewidth=0.5, fmt='o', color='b', label=r'$-\epsilon$')
+        plt.fill_between(bin_df['mass'], df_filtered[wave_neg + "_bootstrap_CIL"], df_filtered[wave_neg + "_bootstrap_CIU"], color='b', alpha=0.1)
     else:
         print("", end='\t')
     # Plot total
     print("tot")
     plt.errorbar(bin_df['mass'], df_filtered['total_intensity'], yerr=df_filtered['total_bootstrap_err'], elinewidth=0.5, fmt='o', color='k', label='Total')
+    plt.fill_between(bin_df['mass'], df_filtered["total_bootstrap_CIL"], df_filtered["total_bootstrap_CIU"], color='k', alpha=0.1)
     plt.title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
     plt.ylim(bottom=0)
     plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
