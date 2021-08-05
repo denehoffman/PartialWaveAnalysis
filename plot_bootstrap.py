@@ -32,7 +32,7 @@ df_bootstrap = pd.read_csv(input_folder / 'bootstrap.txt', delimiter='\t', index
 bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
 #############
 
-amplitudes = [column[:-4] for column in df.columns[3:-3].to_list()[::2] if (column.endswith("_INT") and not column.endswith("_AC_INT"))]
+amplitudes = [column[:-4] for column in df.columns[3:-3].to_list()[::2] if column.endswith("_AC_INT")]
 
 wave_set = set([amp[:-1] for amp in amplitudes])
 wave_dict = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4}

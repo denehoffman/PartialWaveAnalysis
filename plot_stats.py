@@ -26,8 +26,8 @@ mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 df_filtered = df.loc[mask]
 
 bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
-amplitudes = [column[:-4] for column in df.columns[3:-3].to_list()[::2] if (column.endswith("_INT") and not column.endswith("_AC_INT"))]
-amperrors = [column[:-4] for column in df.columns[3:-3].to_list()[1::2] if (column.endswith("_err_INT") and not column.endswith("_err_AC_INT"))]
+amplitudes = [column[:-4] for column in df.columns[3:-3].to_list()[::2] if column.endswith("_AC_INT")]
+amperrors = [column[:-4] for column in df.columns[3:-3].to_list()[1::2] if column.endswith("_err_AC_INT")]
 
 plt.rcParams["figure.figsize"] = (30, 10)
 plt.rcParams["font.size"] = 24
