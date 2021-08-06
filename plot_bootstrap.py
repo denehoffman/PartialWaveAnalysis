@@ -112,7 +112,7 @@ for amp in amplitudes:
     amp_bootstrap_CIL = []
     amp_bootstrap_CIU = []
     for bin_n in range(len(bin_df)):
-        fit_value = df_filtered[amp][bin_n]
+        fit_value = df_filtered[amp + ac_tag][bin_n]
         df_bin = df_bootstrap.loc[df_bootstrap['Bin'] == bin_n]
         df_conv = df_bin[df_bin['Convergence'] == 'C']
         amp_bootstrap_errors.append(df_conv.loc[:, amp + ac_tag].std()) # Using mean of distribution for now
@@ -154,21 +154,21 @@ for wave in waves_sorted:
     wave_pos = wave + "+"
     if wave_pos in amplitudes:
         print("+e", end='\t')
-        plt.errorbar(bin_df['mass'], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color='r', label=r'$+\epsilon$')
-        plt.fill_between(bin_df['mass'], df_filtered[wave_pos + "_bootstrap_CIL" + ac_tag], df_filtered[wave_pos + "_bootstrap_CIU" + ac_tag], color='r', alpha=0.1)
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color='r', label=r'$+\epsilon$')
+        plt.fill_between(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_pos + "_bootstrap_CIL" + ac_tag], df_filtered[wave_pos + "_bootstrap_CIU" + ac_tag], color='r', alpha=0.1)
     else:
         print("", end='\t')
 
     wave_neg = wave + "-"
     if wave_neg in amplitudes:
         print("-e", end='\t')
-        plt.errorbar(bin_df['mass'], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color='b', label=r'$-\epsilon$')
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color='b', label=r'$-\epsilon$')
         plt.fill_between(bin_df['mass'], df_filtered[wave_neg + "_bootstrap_CIL" + ac_tag], df_filtered[wave_neg + "_bootstrap_CIU" + ac_tag], color='b', alpha=0.1)
     else:
         print("", end='\t')
     # Plot total
     print("tot")
-    plt.errorbar(bin_df['mass'], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label='Total')
+    plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label='Total')
     plt.fill_between(bin_df['mass'], df_filtered["total_bootstrap_CIL_AC"], df_filtered["total_bootstrap_CIU_AC"], color='k', alpha=0.1)
     plt.title(rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
     plt.ylim(bottom=0)
@@ -195,9 +195,9 @@ for i, wave in enumerate(waves_sorted):
     wave_pos = wave + "+"
     if wave_pos in amplitudes:
         print(wave + "\t+e")
-        plt.errorbar(bin_df['mass'], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 print("tot")
-plt.errorbar(bin_df['mass'], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
+plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
 plt.ylim(bottom=0)
 plt.legend(loc="upper right")
@@ -220,9 +220,9 @@ for i, wave in enumerate(waves_sorted):
     wave_neg = wave + "-"
     if wave_neg in amplitudes:
         print(wave + "\t\t-e")
-        plt.errorbar(bin_df['mass'], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}_{{{amp_m_sign}{amp_m}}}$")
 print("tot")
-plt.errorbar(bin_df['mass'], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
+plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
 plt.ylim(bottom=0)
 plt.legend(loc="upper right")
@@ -246,19 +246,19 @@ for i, wave in enumerate(waves_sorted):
     print(wave, end='\t')
     if wave_pos in amplitudes:
         print("+e", end='\t')
-        plt.errorbar(bin_df['mass'], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_pos + ac_tag], yerr=df_filtered[wave_pos + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='o', color=colors[i], label=rf"${amp_letter}^+_{{{amp_m_sign}{amp_m}}}$")
     else:
         print("", end='\t')
 
     wave_neg = wave + "-"
     if wave_neg in amplitudes:
         print("-e", end='\t')
-        plt.errorbar(bin_df['mass'], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='s', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
+        plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered[wave_neg + ac_tag], yerr=df_filtered[wave_neg + "_bootstrap_err" + ac_tag], elinewidth=0.5, fmt='s', color=colors[i], label=rf"${amp_letter}^-_{{{amp_m_sign}{amp_m}}}$")
     else:
         print("", end='\t')
     print()
 print("tot")
-plt.errorbar(bin_df['mass'], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
+plt.errorbar(bin_df['mass'].iloc[df_filtered['Bin']], df_filtered['total_intensity_AC'], yerr=df_filtered['total_bootstrap_err_AC'], elinewidth=0.5, fmt='o', color='k', label="Total")
 plt.xlim(bin_df['mass'].iloc[0] - 0.1, bin_df['mass'].iloc[-1] + 0.1)
 plt.ylim(bottom=0)
 plt.legend(loc="upper right")
