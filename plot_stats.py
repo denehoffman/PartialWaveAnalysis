@@ -7,14 +7,14 @@ import matplotlib.backends.backend_pdf
 import sys
 from pathlib import Path
 
-input_folder = Path(sys.argv[1]).resolve()
+fit_results = Path(sys.argv[1]).resolve()
 xlabel = r"$m(K_SK_S)\ GeV/c^2$"
 if len(sys.argv) == 3:
     xlabel = rf"${sys.argv[2]}$"
 
-pdf = matplotlib.backends.backend_pdf.PdfPages(f"stats_{input_folder.stem}.pdf")
+pdf = matplotlib.backends.backend_pdf.PdfPages(f"stats_{fit_results.stem.split('::')[0]}.pdf")
 
-df = pd.read_csv(input_folder / 'fit_results.txt', delimiter='\t', index_col=False)
+df = pd.read_csv(fit_results, delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err_AC'], ascending=[True, False, True], inplace=True)
 
 def mask_first(x):
@@ -25,7 +25,7 @@ def mask_first(x):
 mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 df_filtered = df.loc[mask]
 
-bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
+bin_df = pd.read_csv(fit_results.parent / 'bin_info.txt', delimiter='\t')
 amplitudes = [column[:-7] for column in df.columns[3:-3].to_list()[::2] if column.endswith("_AC_INT")]
 amperrors = [column[:-7] for column in df.columns[3:-3].to_list()[1::2] if column.endswith("_err_AC_INT")]
 ac_tag = "_AC_INT"

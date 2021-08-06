@@ -26,7 +26,7 @@ import time
 def config_menu(root):
     config_menu_title = "Select a fit_results.txt file:"
     configs = [p for p in root.glob("*.cfg")]
-    config_menu_items = ["Cancel"] + [f.name + (" " * (20 - len(f.name))) + ("(fit)" if (f.parent / (f.stem + "::fit_results.txt")).exists() else ("(bootstrapped)" if (f.parent / (f.stem + "::bootstrap.txt")).exists() else "")) for f in configs] 
+    config_menu_items = ["Cancel"] + [f.name + (" " * (20 - len(f.name))) + ("(bootstrapped)" if (f.parent / (f.stem + "::bootstrap.txt")).exists() else ("(fit)" if (f.parent / (f.stem + "::fit_results.txt")).exists() else "")) for f in configs] 
     config_menu_cursor = "> "
     config_menu_cursor_style = ("fg_red", "bold")
     config_menu_style = ("bg_black", "fg_green")

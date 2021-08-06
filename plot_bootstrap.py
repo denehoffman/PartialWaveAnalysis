@@ -8,14 +8,14 @@ import sys
 from scipy.optimize import curve_fit
 from pathlib import Path
 
-input_folder = Path(sys.argv[1]).resolve()
+fit_results = Path(sys.argv[1]).resolve()
 xlabel = r"$m(K_SK_S)\ GeV/c^2$"
 if len(sys.argv) == 3:
     xlabel = rf"${sys.argv[2]}$"
 
-pdf = matplotlib.backends.backend_pdf.PdfPages(f"bootstrap_{input_folder.stem}.pdf")
+pdf = matplotlib.backends.backend_pdf.PdfPages(f"bootstrap_{fit_results.stem.split('::')[0]}.pdf")
 
-df = pd.read_csv(input_folder / 'fit_results.txt', delimiter='\t', index_col=False)
+df = pd.read_csv(fit_results, delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err_AC'], ascending=[True, False, True], inplace=True)
 
 def mask_first(x):
@@ -27,9 +27,10 @@ mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 
 #############
 df_filtered = df.loc[mask]
-df_filtered.set_index('Bin', inplace=True)
-df_bootstrap = pd.read_csv(input_folder / 'bootstrap.txt', delimiter='\t', index_col=False)
-bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
+df_filtered['index'] = df_filtered['Bin'] # do this so we don't lose the 'Bin' column
+df_filtered.set_index('index', inplace=True)
+df_bootstrap = pd.read_csv(fit_results.parent / f"{fit_results.stem.split('::')[0]}::bootstrap.txt", delimiter='\t', index_col=False)
+bin_df = pd.read_csv(fit_results.parent / 'bin_info.txt', delimiter='\t')
 #############
 
 amplitudes = [column[:-7] for column in df.columns[3:-3].to_list()[::2] if column.endswith("_AC_INT")]
