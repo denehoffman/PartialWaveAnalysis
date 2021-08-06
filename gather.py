@@ -62,9 +62,9 @@ def gather(output_dir, config_file, bootstrap):
     headers.append("total_intensity_err_AC")
     headers.append("likelihood")
     if bootstrap:
-        output_file_name = "bootstrap.txt"
+        output_file_name = config_file.stem + "::bootstrap.txt"
     else:
-        output_file_name = "fit_results.txt"
+        output_file_name = config_file.stem + "::fit_results.txt"
     with open(output_dir / output_file_name, 'w') as out_file:
         header = "\t".join(headers)
         out_file.write(f"Bin\tIteration\tConvergence\t{header}\n") # print the header to the output file
@@ -82,9 +82,9 @@ def gather(output_dir, config_file, bootstrap):
                     fit_files = [fit.resolve() for fit in iteration_dir.glob("*.fit")]
                 latest_fit_file = max(fit_files, key=os.path.getctime)
                 if bootstrap:
-                    fit_results = iteration_dir / "bootstrap.txt"
+                    fit_results = iteration_dir / (config_file.stem + "::bootstrap.txt")
                 else:
-                    fit_results = iteration_dir / "fit_results.txt"
+                    fit_results = iteration_dir / (config_file.stem + "::fit_results.txt")
                 bin_total_iterations[int(bin_num_string)] += 1
                 if "CONVERGED" in latest_fit_file.name: # only collect converged fits
                     bin_converged_total[int(bin_num_string)] += 1

@@ -7,10 +7,11 @@ import pandas as pd
 
 
 input_folder = Path(sys.argv[1]).resolve()
+config_name = Path(sys.argv[2]).stem
 bin_df = pd.read_csv(input_folder / 'bin_info.txt', delimiter='\t')
 bin_numbers = bin_df['bin']
 
-df = pd.read_csv(input_folder / 'fit_results.txt', delimiter='\t', index_col=False)
+df = pd.read_csv(input_folder / f'{config_name}::fit_results.txt', delimiter='\t', index_col=False)
 df.sort_values(['Bin', 'likelihood', 'total_intensity_err'], ascending=[True, False, True], inplace=True)
 
 def mask_first(x):
@@ -26,7 +27,7 @@ best_result_by_bin = [df_filtered[df_filtered['Bin'] == n].iloc[0] for n in bin_
 
 bin_folders = [input_folder / f"{n}" for n in bin_numbers]
 for n in bin_numbers:
-    config_file = list(bin_folders[n].glob("*.cfg"))[0]
+    config_file = list(bin_folders[n].glob(f"{config_name}_*.cfg"))[0]
     config_dest = config_file.parent / (config_file.stem + "_bootstrap.cfg")
     with open(config_file, 'r') as config_old:
         config_old_lines = config_old.readlines()
