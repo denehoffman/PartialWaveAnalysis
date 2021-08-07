@@ -26,7 +26,7 @@ import time
 def config_menu(root):
     config_menu_title = "Select a fit_results.txt file:"
     configs = [p for p in root.glob("*.cfg")]
-    config_menu_items = ["Cancel"] + [f.name + (" " * (20 - len(f.name))) + ("(bootstrapped)" if (f.parent / (f.stem + "::bootstrap.txt")).exists() else ("(fit)" if (f.parent / (f.stem + "::fit_results.txt")).exists() else "")) for f in configs] 
+    config_menu_items = ["Cancel"] + [f.name + ("*" * (40 - len(f.name))) + ("(bootstrapped)" if (f.parent / (f.stem + "::bootstrap.txt")).exists() else ("(fit)" if (f.parent / (f.stem + "::fit_results.txt")).exists() else "")) for f in configs] 
     config_menu_cursor = "> "
     config_menu_cursor_style = ("fg_red", "bold")
     config_menu_style = ("bg_black", "fg_green")
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--iterations", default=1, type=int, help="set the number of fits to perform for each bin")
     parser.add_argument("--parallel", default="SLURM", help="method of parallelization, options are SLURM (default) and Pool (Python Multiprocessing)")
     parser.add_argument("--bootstrap", action='store_true', help="use bootstrapping (must have run a fit already and run bootstrap.py)")
+    parser.add_argument("--rerun", action='store_true', help="rerun existing fit")
     queue_group = parser.add_mutually_exclusive_group()
     queue_group.add_argument('-r', '--red', action='store_true', help="run on red queue (default)")
     queue_group.add_argument('-g', '--green', action='store_true', help="run on green queue")
@@ -109,10 +110,13 @@ if __name__ == "__main__":
     if args.parallel == "SLURM":
         for tup in tqdm(bin_iterations_seed_reaction_bootstrap_configstem_tuple):
             bin_number, iteration, seed, reaction, bootstrap, configstem = tup
+            fit_file = Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt"
+            bootstrap_file = Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt"
             log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
             log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
-            os.system(f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}")
-            time.sleep(1)
+            if args.rerun or (not fit_file.exists()) and (not (bootstrap and bootstrap.exists())):
+                os.system(f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}")
+                time.sleep(1)
 
         # Wait for all jobs to finish before gathering results
         finished_running = False
