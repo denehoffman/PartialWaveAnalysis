@@ -10,6 +10,7 @@ import uproot
 import awkward as ak
 import argparse
 from tqdm import tqdm
+from scipy.special import gammaln
 from simple_term_menu import TerminalMenu
 
 def plot_menu(root):
@@ -33,6 +34,25 @@ def plot_menu(root):
     else:
         return fits[selection_index - 1]
 
+
+def optBINS(data, weights, minM, maxM):
+    # Kevin H. Knuth's algorithm for determining optimal binning
+    # https://arxiv.org/pdf/physics/0605197.pdf
+    print("Computing optimal number of bins")
+    N = len(data)
+    logp = np.zeros(maxM)
+    for M in range(minM, maxM):
+        print(f"Testing nbins = {M}", end='')
+        n, _ = np.histogram(data, weights=weights)
+        part1 = N * np.log(M) + gammaln(M / 2) - gammaln(N + M / 2)
+        part2 = - M * gammaln(1/2) + np.sum(gammaln(n + 0.5))
+        logp[M] = part1 + part2
+        print(f" ... ({logp[M]})")
+    optM = np.argmax(logp)
+    print(f"Optimal number of bins is {optM}")
+    return optM
+
+
 parser = argparse.ArgumentParser(description="Plotting tools for PartialWaveAnalysis")
 parser.add_argument("path", help="path to fit directory")
 parser.add_argument("-u", "--uncorrected", action='store_true', help="plot intensities without acceptance correction")
@@ -40,6 +60,10 @@ parser.add_argument("-d", "--data", action='store_true', help="plot true data hi
 parser.add_argument("-b", "--background", action='store_true', help="plot background histogram behind intensities")
 parser.add_argument("-s", "--subtracted", action='store_true', help="plot background-subtracted data behind intensities")
 parser.add_argument("-l", "--label", default="K_SK_S", help="LaTeX formated string of particles for x-axis label (default: \"K_SK_S\")")
+parser_group = parser.add_mutually_exclusive_group()
+parser_group.add_argument("--bins", type=int, help="set number of bins for data")
+parser_group.add_argument("--optimize", action='store_true', help="optimize data binning (experimental, currently doesn't work)")
+
 if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
     parser.print_help(sys.stderr)
     sys.exit(1)
@@ -94,7 +118,7 @@ weights_bkg = []
 weights_sub = []
 print("Gathering real data for histograms")
 for bin_dir in tqdm(bin_dirs):
-    if args.data or args.subtracted:
+    if args.data or args.background or args.subtracted:
         data_files = [data_file for data_file in bin_dir.iterdir() if data_file.name.endswith(".root") and "DATA" in data_file.name]
         for data_file in data_files:
             with uproot.open(data_file) as df:
@@ -122,6 +146,13 @@ if args.data:
 if args.background or args.subtracted:
     print(f"Background has {len(invariant_mass_bkg)} events")
 
+nbins = len(bin_df)
+if args.optimize:
+    print("WARNING: Plotting data with an optimized binning algorithm. This is an experimental feature!")
+    nbins = optBINS(invariant_mass, weights, nbins, 600)
+elif not args.bins == None:
+    nbins = args.bins
+
 plt.rcParams["figure.figsize"] = (20, 10)
 plt.rcParams["font.size"] = 24
 
@@ -132,11 +163,11 @@ for wave in waves_sorted:
 
     # plot real data histograms
     if args.data:
-        plt.hist(invariant_mass, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
+        plt.hist(invariant_mass, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
     if args.background:
-        plt.hist(invariant_mass_bkg, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
+        plt.hist(invariant_mass_bkg, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
     if args.subtracted:
-        plt.hist(invariant_mass_sub, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
+        plt.hist(invariant_mass_sub, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
 
     # wave = S0, P1+, D2-, etc. -- no reflectivity info
     amp_letter = wave[0]
@@ -179,11 +210,11 @@ fig = plt.figure()
 
 # plot real data histograms
 if args.data:
-    plt.hist(invariant_mass, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
 if args.background:
-    plt.hist(invariant_mass_bkg, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_bkg, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
 if args.subtracted:
-    plt.hist(invariant_mass_sub, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_sub, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
 
 for i, wave in enumerate(waves_sorted):
     amp_letter = wave[0]
@@ -214,11 +245,11 @@ fig = plt.figure()
 
 # plot real data histograms
 if args.data:
-    plt.hist(invariant_mass, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
 if args.background:
-    plt.hist(invariant_mass_bkg, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_bkg, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
 if args.subtracted:
-    plt.hist(invariant_mass_sub, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_sub, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
 
 for i, wave in enumerate(waves_sorted):
     amp_letter = wave[0]
@@ -249,11 +280,11 @@ fig = plt.figure()
 
 # plot real data histograms
 if args.data:
-    plt.hist(invariant_mass, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights, color=data_colors[0], label="Data", fill=False, histtype='step', lw=2)
 if args.background:
-    plt.hist(invariant_mass_bkg, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_bkg, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_bkg, color=data_colors[1], label="Background", fill=False, histtype='step', lw=2)
 if args.subtracted:
-    plt.hist(invariant_mass_sub, bins=len(bin_dirs), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
+    plt.hist(invariant_mass_sub, bins=nbins, range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=weights_sub, color=data_colors[2], label="Data - Background", fill=False, histtype='step', lw=2)
 
 for i, wave in enumerate(waves_sorted):
     amp_letter = wave[0]
