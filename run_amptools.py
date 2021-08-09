@@ -44,6 +44,11 @@ def config_menu(root):
     else:
         return root / configs[selection_index - 1]
 
+def run_pool(tup):
+    global log_dir
+    os.system(f"python3 ../run_fit.py {int(tup[0])} {int(tup[1])} {int(tup[2])} {str(tup[3])} {str(log_dir)} {str(tup[4])} {str(tup[5])}")
+
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs AmpTools fits on each mass bin")
@@ -134,7 +139,7 @@ if __name__ == "__main__":
 
     elif args.parallel == "Pool":
         with Pool(processes=args.processes) as pool: # create a multiprocessing pool
-            res = list(tqdm(pool.imap(lambda tup: os.system(f"python3 ../run_fit.py {int(tup[0])} {int(tup[1])} {int(tup[2])} {str(tup[3])} {str(log_dir)} {str(tup[4])} {str(tup[5])}"), bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
+            res = list(tqdm(pool.imap(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
             # imap vs map just spawns an iterator so tqdm can make a progress bar
         os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''}")
     else:
