@@ -88,19 +88,20 @@ def gather(output_dir, config_file, bootstrap, n_iterations):
             for iteration_dir in iter_dirs:
                 iteration_num_string = iteration_dir.name
                 if bootstrap:
-                    fit_files = [fit.resolve() for fit in iteration_dir.glob("*.bootstrap")]
-                else:
-                    fit_files = [fit.resolve() for fit in iteration_dir.glob("*.fit")]
-                latest_fit_file = max(fit_files, key=os.path.getctime)
-                if bootstrap:
                     fit_results = iteration_dir / (config_file.stem + "::bootstrap.txt")
                 else:
                     fit_results = iteration_dir / (config_file.stem + "::fit_results.txt")
                 bin_total_iterations[int(bin_num_string)] += 1
-                if "CONVERGED" in latest_fit_file.name: # only collect converged fits
-                    bin_converged_total[int(bin_num_string)] += 1
-                with open(fit_results) as fit_reader:
-                    out_file.write(fit_reader.read()) # write fit results to output file (in no particular row order)
+                converged = "U"
+                if fit_results.exists():
+                    with open(fit_results, "r") as fit_results_reader: 
+                        line = fit_results_reader.readline()
+                        if line != "":
+                            converged  = line.split("\t")[2]
+                    if converged == "C": # only collect converged fits
+                        bin_converged_total[int(bin_num_string)] += 1
+                    with open(fit_results) as fit_reader:
+                        out_file.write(fit_reader.read()) # write fit results to output file (in no particular row order)
         print("Convergence Results:")
         for i, bin_converged_num in enumerate(bin_converged_total):
             percent_converged = bin_converged_total[i] / bin_total_iterations[i]
