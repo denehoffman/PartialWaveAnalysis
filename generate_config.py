@@ -109,8 +109,11 @@ class Wave:
 
         wave_string_imag = self.get_wave_string(Wave.IMAG)
         wave_string_imag_000 = self.get_wave_string(Wave.IMAG, pol="_000")
-
-        amplitude_string = f"amplitude {wave_string_real} Zlm {self.l} {self.m} {self.e} +1 LOOPPOLANG LOOPPOLVAL\namplitude {wave_string_imag} Zlm {self.l} {self.m} {self.e} -1 LOOPPOLANG LOOPPOLVAL\n"
+        
+        if self.e > 0:
+            amplitude_string = f"amplitude {wave_string_real} Zlm {self.l} {self.m} +1 +1 LOOPPOLANG LOOPPOLVAL\namplitude {wave_string_imag} Zlm {self.l} {self.m} -1 -1 LOOPPOLANG LOOPPOLVAL\n"
+        else:
+            amplitude_string = f"amplitude {wave_string_real} Zlm {self.l} {self.m} +1 -1 LOOPPOLANG LOOPPOLVAL\namplitude {wave_string_imag} Zlm {self.l} {self.m} -1 +1 LOOPPOLANG LOOPPOLVAL\n"
 
         if cartesian:
             cartesian_str = "cartesian"
