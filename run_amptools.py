@@ -21,6 +21,8 @@ from tqdm import tqdm
 from simple_term_menu import TerminalMenu
 from colorama import Fore
 import time
+import threading
+import enlighten
 
 
 def config_menu(root):
@@ -46,7 +48,35 @@ def config_menu(root):
 
 def run_pool(tup):
     global log_dir
-    os.system(f"python3 ../run_fit.py {int(tup[0])} {int(tup[1])} {int(tup[2])} {str(tup[3])} {str(log_dir)} {str(tup[4])} {str(tup[5])}")
+    subprocess.run(f"python3 ../run_fit.py {int(tup[0])} {int(tup[1])} {int(tup[2])} {str(tup[3])} {str(log_dir)} {str(tup[4])} {str(tup[5])}".split(), stdout=subprocess.PIPE)
+
+def update_counters(active_jobs, bin_directory, configstem, total_counter, total_call_limit, total_failed, counters, counters_call_limit, counters_failed):
+    global args
+    active_indices = np.argwhere(active_jobs != 0)
+    while(len(active_indices) != 0):
+        for index in active_indices:
+            bin_str = str(index[0])
+            iteration_str = str(index[1])
+            fit_directory = bin_directory / bin_str / iteration_str
+            if args.bootstrap:
+                potential_fit_files = list(fit_directory.glob(f"{configstem}*.bootstrap"))
+                potential_results_file = fit_directory / f"{configstem}::bootstrap.txt"
+            else:
+                potential_fit_files = list(fit_directory.glob(f"{configstem}*.fit"))
+                potential_results_file = fit_directory / f"{configstem}::fit_results.txt"
+            if len(potential_fit_files) != 0 and potential_results_file.exists():
+                fit_file = potential_fit_files[0]
+                active_jobs[index[0], index[1]] = 0
+                if "CONVERGED" in fit_file.name:
+                    counters[index[0]].update()
+                    total_counter.update()
+                elif "CALL_LIMIT" in fit_file.name:
+                    counters_call_limit[index[0]].update()
+                    total_call_limit.update()
+                elif "FAILED" in fit_file.name:
+                    counters_failed[index[0]].update()
+                    total_failed.update()
+        active_indices = np.argwhere(active_jobs != 0)
 
 
 
@@ -62,6 +92,7 @@ if __name__ == "__main__":
     queue_group = parser.add_mutually_exclusive_group()
     queue_group.add_argument('-r', '--red', action='store_true', help="run on red queue (default)")
     queue_group.add_argument('-g', '--green', action='store_true', help="run on green queue")
+    parser.add_argument("-v", "--verbose", action='store_true', help="verbose output")
     if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
         parser.print_help(sys.stderr)
         sys.exit(1)
@@ -113,34 +144,127 @@ if __name__ == "__main__":
 
     os.chdir(str(bin_directory)) # cd into the directory containing bin subdirectories
     if args.parallel == "SLURM":
-        for tup in tqdm(bin_iterations_seed_reaction_bootstrap_configstem_tuple):
-            bin_number, iteration, seed, reaction, bootstrap, configstem = tup
-            fit_file = Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt"
-            bootstrap_file = Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt"
-            log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
-            log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
-            if args.rerun or (not fit_file.exists()) and (not (bootstrap and bootstrap.exists())):
-                os.system(f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}")
-                time.sleep(1)
+        np.random.shuffle(bin_iterations_seed_reaction_bootstrap_configstem_tuple)
+        if args.rerun:
+            for tup in bin_iterations_seed_reaction_bootstrap_configstem_tuple:
+                bin_number, iteration, seed, reaction, bootstrap, configstem = tup
+                fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
+                bootstrap_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt").resolve()
+                if bootstrap:
+                    if bootstrap_file.exists():
+                        bootstrap_file.unlink()
+                else:
+                    if fit_file.exists():
+                        fit_file.unlink()
+                    if bootstrap_file.exists():
+                        bootstrap_file.unlink()
+        if args.verbose:
+            manager = enlighten.get_manager()
+            active_jobs = np.array([[1 for _ in range(args.iterations)] for _ in range(n_bins)])
+            total_counter = manager.counter(total=(args.iterations * n_bins), color='white', desc="Total")
+            total_failed = total_counter.add_subcounter(color='red')
+            total_call_limit = total_counter.add_subcounter(color='yellow')
+            counters = [manager.counter(total=args.iterations, desc=(f"Bin {bin_num}" + " " * (4 - len(str(bin_num)))), color='green', bar_format='{desc}{desc_pad}{percentage:3.0f}%|{bar}| {count:{len_total}d}/{total:d}') for bin_num in range(n_bins)]
+            counters_failed = [counter.add_subcounter(color='red') for counter in counters]
+            counters_call_limit = [counter.add_subcounter(color='yellow') for counter in counters]
+            status_bar = manager.status_bar('Submitting SLURM Jobs', color='white_on_black', justify=enlighten.Justify.CENTER)
+            bars = threading.Thread(target=update_counters, args=(active_jobs, bin_directory, config_template.stem, total_counter, total_call_limit, total_failed, counters, counters_call_limit, counters_failed))
+            bars.start()
+            
+            for i, tup in enumerate(bin_iterations_seed_reaction_bootstrap_configstem_tuple):
+                bin_number, iteration, seed, reaction, bootstrap, configstem = tup
+                fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
+                bootstrap_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt").resolve()
+                log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
+                log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
+                if not fit_file.exists() and not (bootstrap and bootstrap_file.exists()):
+                    status_bar.update(f"Submitting SLURM Jobs: {i}/{len(bin_iterations_seed_reaction_bootstrap_configstem_tuple)}")
+                    os.system(f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}")
+                    time.sleep(1)
 
-        # Wait for all jobs to finish before gathering results
-        finished_running = False
-        username = os.getlogin() # get username for checking SLURM
-        while not finished_running:
-            n_jobs_queued = len(subprocess.run(['squeue', '-h', '-u', username], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
-            n_jobs_running = len(subprocess.run(['squeue', '-h', '-u', username, '-t', 'running'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
-            len_queued = len(str(n_jobs_queued - n_jobs_running))
-            len_running = len(str(n_jobs_running))
-            print(f"\r{n_jobs_queued - n_jobs_running} job(s) currently queued, {n_jobs_running} job(s) running", end=" " * (len_queued + len_running + 4))
-            if n_jobs_queued == 0:
-                finished_running = True
-            time.sleep(1)
-        os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''}")
+            # Wait for all jobs to finish before gathering results
+            finished_running = False
+            username = os.getlogin() # get username for checking SLURM
+            while not finished_running:
+                n_jobs_queued = len(subprocess.run(['squeue', '-h', '-u', username], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                n_jobs_running = len(subprocess.run(['squeue', '-h', '-u', username, '-t', 'running'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                len_queued = len(str(n_jobs_queued - n_jobs_running))
+                len_running = len(str(n_jobs_running))
+                status_bar.update(f"{n_jobs_queued - n_jobs_running} job(s) currently queued, {n_jobs_running} job(s) running")
+                if n_jobs_queued == 0:
+                    finished_running = True
+                time.sleep(1)
+            manager.stop()
+        else: # not verbose
+            manager = enlighten.get_manager()
+            total_counter = manager.counter(total=(args.iterations * n_bins), color='white', desc="Total")
+            status_bar = manager.status_bar('Submitting SLURM Jobs', color='white_on_black', justify=enlighten.Justify.CENTER)
+            username = os.getlogin() # get username for checking SLURM
+            for tup in bin_iterations_seed_reaction_bootstrap_configstem_tuple:
+                bin_number, iteration, seed, reaction, bootstrap, configstem = tup
+                fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
+                bootstrap_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt").resolve()
+                log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
+                log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
+                total_counter.update()
+                if not fit_file.exists() and not (bootstrap and bootstrap_file.exists()):
+                    os.system(f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}")
+
+                    n_jobs_queued = len(subprocess.run(['squeue', '-h', '-u', username], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                    n_jobs_running = len(subprocess.run(['squeue', '-h', '-u', username, '-t', 'running'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                    len_queued = len(str(n_jobs_queued - n_jobs_running))
+                    len_running = len(str(n_jobs_running))
+                    status_bar.update(f"{n_jobs_queued - n_jobs_running} job(s) currently queued, {n_jobs_running} job(s) running")
+                    time.sleep(1)
+            total_counter.close()
+            # Wait for all jobs to finish before gathering results
+            finished_running = False
+            while not finished_running:
+                n_jobs_queued = len(subprocess.run(['squeue', '-h', '-u', username], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                n_jobs_running = len(subprocess.run(['squeue', '-h', '-u', username, '-t', 'running'], stdout=subprocess.PIPE).stdout.decode('utf-8').splitlines())
+                len_queued = len(str(n_jobs_queued - n_jobs_running))
+                len_running = len(str(n_jobs_running))
+                status_bar.update(f"{n_jobs_queued - n_jobs_running} job(s) currently queued, {n_jobs_running} job(s) running")
+                if n_jobs_queued == 0:
+                    finished_running = True
+                time.sleep(1)
+            manager.stop()
+        os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
 
     elif args.parallel == "Pool":
-        with Pool(processes=args.processes) as pool: # create a multiprocessing pool
-            res = list(tqdm(pool.imap(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
-            # imap vs map just spawns an iterator so tqdm can make a progress bar
-        os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''}")
+        np.random.shuffle(bin_iterations_seed_reaction_bootstrap_configstem_tuple)
+        if args.rerun:
+            for tup in bin_iterations_seed_reaction_bootstrap_configstem_tuple:
+                bin_number, iteration, seed, reaction, bootstrap, configstem = tup
+                fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
+                bootstrap_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::bootstrap.txt").resolve()
+                if bootstrap:
+                    if bootstrap_file.exists():
+                        bootstrap_file.unlink()
+                else:
+                    if fit_file.exists():
+                        fit_file.unlink()
+                    if bootstrap_file.exists():
+                        bootstrap_file.unlink()
+        if args.verbose:
+            manager = enlighten.get_manager()
+            active_jobs = np.array([[1 for _ in range(args.iterations)] for _ in range(n_bins)])
+            total_counter = manager.counter(total=(args.iterations * n_bins), color='white', desc="Total")
+            total_failed = total_counter.add_subcounter(color='red')
+            total_call_limit = total_counter.add_subcounter(color='yellow')
+            counters = [manager.counter(total=args.iterations, desc=(f"Bin {bin_num}" + " " * (4 - len(str(bin_num)))), color='green', bar_format='{desc}{desc_pad}{percentage:3.0f}%|{bar}| {count:{len_total}d}/{total:d}') for bin_num in range(n_bins)]
+            counters_failed = [counter.add_subcounter(color='red') for counter in counters]
+            counters_call_limit = [counter.add_subcounter(color='yellow') for counter in counters]
+            status_bar = manager.status_bar('Running Pool Jobs', color='white_on_black', justify=enlighten.Justify.CENTER)
+            bars = threading.Thread(target=update_counters, args=(active_jobs, bin_directory, config_template.stem, total_counter, total_call_limit, total_failed, counters, counters_call_limit, counters_failed))
+            bars.start()
+            with Pool(processes=args.processes) as pool: # create a multiprocessing pool
+                res = pool.map(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple) # map(x, y) spawns processes which run a method x(y)
+            manager.stop()
+        else: # not verbose
+            with Pool(processes=args.processes) as pool: # create a multiprocessing pool
+                res = list(tqdm(pool.imap(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
+
+        os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
     else:
         print("Please select a supported parallelization method!")
