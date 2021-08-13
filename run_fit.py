@@ -100,10 +100,12 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     elapsed = time.time() - start_time
     start_time = time.time()
     print(f"Fit: {int(elapsed)} seconds")
+    """
     with open(err_file, 'w') as err_writer:
         err_writer.write(process.stderr) # write any errors to an error file
     with open(log_file, 'w') as log_writer:
         log_writer.write(process.stdout) # write output to a log file
+    """
     fit_result = process.stdout
     # check if the fit converged, we'll add this to the filename later 
     if "STATUS=CONVERGED" in fit_result:
@@ -147,11 +149,10 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
             commands.append(command)
     command = ["realImag"]
     for wave_name in amplitudes:
-        wave_name = line.split()[1].strip() # get the parameter name
         wave_parts = wave_name.split("::")
         if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
             command.append(wave_parts[0] + "_000" + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
-        commands.append(command)
+    commands.append(command)
     amp_pairs = combinations(amplitudes, 2)
     for amp_pair in amp_pairs:
         wave_name1, wave_name2 = amp_pair
