@@ -142,7 +142,8 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
             if "polAngle" in line:
                 polarizations.append(line.split()[1].replace("polAngle", ""))
                 print("Found Polarization: " + line.split()[1].replace("polAngle", ""))
-    print("All Polarizations: " + polarizations)
+    for polarization in polarizations:
+        print(f"Using polarization {polarization}")
     for wave_name in amplitudes:
         command = []
         wave_parts = wave_name.split("::")
