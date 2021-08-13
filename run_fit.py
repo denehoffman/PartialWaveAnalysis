@@ -17,9 +17,9 @@ import shutil
 from pathlib import Path
 from multiprocessing import Pool
 import subprocess
-import time
 from itertools import combinations
 from tqdm import tqdm
+import logging
 
 def resample_params(iteration, config_file):
     """Reads in an AmpTools configuration file and generates a new file with resampled initial fit parameters.
@@ -39,7 +39,9 @@ def resample_params(iteration, config_file):
         output_lines = []
         for line in config_lines:
             if "@seed" in line:
-                line = line.replace("@seed", str(np.random.randint(1, high=100000)))
+                bootseed = str(np.random.randint(1, high=100000))
+                line = line.replace("@seed", bootseed)
+                logging.info(f"Bootstrap data sampling seed: {bootseed}")
             if line.startswith('initialize'): # if a line starts with initialize...
                 line_parts = line.split() # split it on spaces and set the 3rd and 4th fields to randoms
                 if line_parts[2] == "cartesian":
@@ -47,11 +49,13 @@ def resample_params(iteration, config_file):
                         line_parts[3] = str(np.random.uniform(low=-100.0, high=100.0))
                     if line_parts[4] == "@uniform":
                         line_parts[4] = str(np.random.uniform(low=-100.0, high=100.0))
+                    logging.info(f"Initializing {line_parts[1]} to {line_parts[3]} + {line_parts[4]}i")
                 elif line_parts[2] == "polar":
                     if line_parts[3] == "@uniform":
                         line_parts[3] = str(np.random.uniform(low=0.0, high=100.0))
                     if line_parts[4] == "@uniform":
                         line_parts[4] = str(np.random.uniform(low=0.0, high=2 * np.pi))
+                    logging.info(f"Initializing {line_parts[1]} to {line_parts[3]} x Exp(i{line_parts[4]})")
                 line = " ".join(line_parts)
                 line += "\n"
             output_lines.append(line)
@@ -69,43 +73,41 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     :rtype: None
     :return: None
     """
-    start_time = time.time()
     log_dir = Path(log_dir).resolve()
-    log_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.log"
-    err_file = log_dir / f"bin_{bin_number}_iteration_{iteration}_seed_{seed}_reaction_{reaction}.err"
+    log_file = log_dir / f"{configstem}_{bin_number}_{iteration}.log"
+    logging.basicConfig(filename=log_file,
+                        filemode='a', # append mode
+                        format="%(asctime)s - %(levelname)s:%(message)s",
+                        datefmt="%d/%m/%y %H:%M:%S")
     os.chdir(str(bin_number)) # cd into the bin directory
+    logger.info("---------- Start of Fit ----------\n\n")
+    logging.info(f"Starting AmpTools fit for {configstem}\tBin = {bin_number}\tIteration = {iteration}\tSeed = {seed}")
+    if bootstrap:
+        logging.info("Bootstrapping is enabled")
     Path(f"./{iteration}").mkdir(exist_ok=True) # create a directory for this iteration if it doesn't already exist
     root_files = Path(".").glob("*.root") # get all the ROOT files for this bin
-    print("Copying files")
+    logging.info("Copying ROOT files")
     for root_file in root_files:
         source = root_file.resolve()
         destination = source.parent / str(iteration) / source.name
         shutil.copy(str(source), str(destination)) # copy all the ROOT files into the iteration directory
-    elapsed = time.time() - start_time
-    start_time = time.time()
-    print(f"Copied: {int(elapsed)} seconds")
+        logging.debug(f"{str(source)} -> {str(destination)}")
     np.random.seed(seed) # set the seed
     if bootstrap:
         config_file = Path(f"{configstem}_{bin_number}_bootstrap.cfg") # locate the (bootstrap) config file
     else:
         config_file = Path(f"{configstem}_{bin_number}.cfg") # locate the config file
+    logging.info(f"Using configuration in {str(config_file)}")
     iteration_config_file = resample_params(iteration, str(config_file)) # resample initialization and create a new file for this iteration
     source = Path(iteration_config_file).resolve()
     destination = source.parent / str(iteration) / source.name
     source.replace(destination) # move the iteration config file into its corresponding folder
+    logging.debug(f"Renaming resampled config: {str(source)} -> {str(destination)}")
     os.chdir(str(iteration)) # cd into the iteration folder
     # run the fit: use the iteration config file, send output to stdout, send errors to sterr
-    print("Fitting")
-    process = subprocess.run(['fit', '-c', iteration_config_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-    elapsed = time.time() - start_time
-    start_time = time.time()
-    print(f"Fit: {int(elapsed)} seconds")
-    """
-    with open(err_file, 'w') as err_writer:
-        err_writer.write(process.stderr) # write any errors to an error file
-    with open(log_file, 'w') as log_writer:
-        log_writer.write(process.stdout) # write output to a log file
-    """
+    logging.info("Running Fit")
+    process = subprocess.run(['fit', '-c', iteration_config_file], stdout=subprocess.PIPE, universal_newlines=True)
+    logging.info(process.stdout)
     fit_result = process.stdout
     # check if the fit converged, we'll add this to the filename later 
     if "STATUS=CONVERGED" in fit_result:
@@ -120,17 +122,19 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     else:
         status = "UNKNOWN"
         convergence = "U"
+    logging.info(f"AmpTools has completed the fit with status = {status}")
     fit_output = Path(reaction + ".fit").resolve() # locate the output .fit file generated by AmpTools
     if bootstrap:
         fit_output_destination = Path(configstem + "::" + fit_output.stem + f"::{status}.bootstrap").resolve()
     else:
         fit_output_destination = Path(configstem + "::" + fit_output.stem + f"::{status}.fit").resolve()
     fit_output.replace(fit_output_destination) # rename it to contain the fit status (convergence)
+    logging.debug(f"Renamed fit file: {str(fit_output)} -> {str(fit_output_destination)}")
     root_files_in_iteration = Path(".").glob("*.root")
     for root_file in root_files_in_iteration:
         root_file.unlink() # remove all the ROOT files in the iteration subdirectory (no longer need them)
-
-    print("Gathering results")
+    logging.info(f"ROOT files have been removed from the iteration directory")
+    logging.info("Gathering Results")
     # Get the fit results here
     commands = []
     amplitudes = []
@@ -141,10 +145,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
                 amplitudes.append(line.split()[1].strip()) # formatted like "KsKs::NegativeRe::D2+-"
             if line.startswith("define polAngle"):
                 polarizations.append(line.split()[1].replace("polAngle", ""))
-                print("Found Polarization: " + line.split()[1].replace("polAngle", ""))
-    print(polarizations)
-    for polarization in polarizations:
-        print(f"Using polarization {polarization}")
+                logging.debug("Found Polarization: " + line.split()[1].replace("polAngle", ""))
     for wave_name in amplitudes:
         command = []
         wave_parts = wave_name.split("::")
@@ -182,14 +183,18 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
         if convergence == 'C' or convergence == 'L':
             outputs = []
             for command in commands:
-                print(command)
-                process = subprocess.run(['get_fit_results', str(fit_output_destination), *command], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-                outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
+                logging.debug(f"Running command: get_fit_results {str(fit_output_destination)} {' '.join(command)}")
+                process = subprocess.run(['get_fit_results', str(fit_output_destination), *command], stdout=subprocess.PIPE, universal_newlines=True)
+                if "#" in process.stdout:
+                    outputs.append(process.stdout.split("#")[1]) # AmpTools makes a silly warning sometimes
+                else:
+                    logging.error("An error occurred in get_fit_results!")
+                    logging.error(process.stdout)
             output = "\t".join(outputs)
+            logger.info(f"Writing fit output to {output_file_name}")
             out_file.write(f"{bin_number}\t{iteration}\t{convergence}\t{output}\n") # write fit results to output file (in no particular row order)
-    elapsed = time.time() - start_time
-    print(f"Finished gathering results: {int(elapsed)} seconds")
     os.chdir("../..")
+    logger.info("----------- End of Fit -----------\n\n")
 
 
 def main():

@@ -23,6 +23,7 @@ from colorama import Fore
 import time
 import threading
 import enlighten
+import logging
 
 
 def config_menu(root):
@@ -79,7 +80,6 @@ def update_counters(active_jobs, bin_directory, configstem, total_counter, total
         active_indices = np.argwhere(active_jobs != 0)
 
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Runs AmpTools fits on each mass bin")
     parser.add_argument("-d", "--directory", required=True, help="the input directory (output of divide_data.py)")
@@ -97,16 +97,6 @@ if __name__ == "__main__":
         parser.print_help(sys.stderr)
         sys.exit(1)
     args = parser.parse_args()
-    if args.green:
-        cpu_memory = 1590
-        threads = 4
-        queue = "green"
-    else:
-        cpu_memory = 1990
-        threads = 4
-        queue = "red"
-    memory = threads * cpu_memory
-
     bin_directory = Path(args.directory).resolve()
     if bin_directory.is_dir(): # check if directory with all the separated bins exists
         print(f"Input Directory: {bin_directory}")
@@ -125,27 +115,49 @@ if __name__ == "__main__":
                 # this is also what AmpTools calls the .fit file later (like KsKs.fit)
     print(f"Reaction Name: {reaction}")
 
+    logging.basicConfig(filename=f"{reaction}.log",
+                        filemode='a', # append mode
+                        format="%(asctime)s - %(levelname)s:%(message)s",
+                        datefmt="%d/%m/%y %H:%M:%S")
+
+    logging.info("Beginning AmpTools Fitting Procedure")
+    
     log_dir = Path("logs").resolve()
     log_dir.mkdir(exist_ok=True) # create a log directory if it doesn't already exist
 
+    logging.info(f"Setting seed to {args.seed}")
     np.random.seed(args.seed) # seed the RNG
     seeds = [np.random.randint(1, high=100000) for _ in range(args.iterations)] # create seeds for each iteration
     n_bins = len([bin_dir for bin_dir in bin_directory.glob("*") if bin_dir.is_dir()])
+    logging.info(f"Using {n_bins} bins and {args.iterations} iterations per bin ({n_bins * args.iterations} total fits)")
     bin_iterations_seed_reaction_bootstrap_configstem_tuple = [(i, j, seeds[j], reaction, args.bootstrap, config_template.stem) for i in range(n_bins) for j in range(args.iterations)]
     # tuple contains the bin number, the iteration number, a seed specific to the iteration (iteration "j" across all bins will have the same seed, so in theory
     # it should also have the same starting parameters, in case that is important later on), and the reaction name
 
     if args.bootstrap:
         if (bin_directory / f"{config_template.stem}::fit_results.txt").exists():
+            logging.info("Bootstrapping enabled, generating new configuration file")
             os.system(f"python3 bootstrap.py {str(bin_directory)} {config_template.stem}") # run bootstrap script (assuming a fit has already been performed)
         else:
             print("You need to run a fit with that configuration file before you can bootstrap it!")
+            logging.error("No configuration file found at {str(bin_directory)}/{config_template.stem}::fit_results.txt")
             sys.exit(1)
 
     os.chdir(str(bin_directory)) # cd into the directory containing bin subdirectories
     if args.parallel == "SLURM":
+        logging.debug("Using SLURM to distribute fit jobs")
+        if args.green:
+            cpu_memory = 1590
+            threads = 4
+            queue = "green"
+        else:
+            cpu_memory = 1990
+            threads = 4
+            queue = "red"
+        memory = threads * cpu_memory
         np.random.shuffle(bin_iterations_seed_reaction_bootstrap_configstem_tuple)
         if args.rerun:
+            logging.warning("Rerun flag has been specified, existing fit files will be deleted!")
             for tup in bin_iterations_seed_reaction_bootstrap_configstem_tuple:
                 bin_number, iteration, seed, reaction, bootstrap, configstem = tup
                 fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
@@ -158,6 +170,7 @@ if __name__ == "__main__":
                         fit_file.unlink()
                     if bootstrap_file.exists():
                         bootstrap_file.unlink()
+        logging.info("Submitting Jobs to Cluster")
         if args.verbose:
             manager = enlighten.get_manager()
             active_jobs = np.array([[1 for _ in range(args.iterations)] for _ in range(n_bins)])
@@ -229,11 +242,15 @@ if __name__ == "__main__":
                     finished_running = True
                 time.sleep(1)
             manager.stop()
+        logger.info("All jobs have been processed")
+        logger.info("Gathering results")
         os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
 
     elif args.parallel == "Pool":
+        logger.info(f"Running jobs in multiprocessing pool with {args.processes} simultaneous processes")
         np.random.shuffle(bin_iterations_seed_reaction_bootstrap_configstem_tuple)
         if args.rerun:
+            logging.warning("Rerun flag has been specified, existing fit files will be deleted!")
             for tup in bin_iterations_seed_reaction_bootstrap_configstem_tuple:
                 bin_number, iteration, seed, reaction, bootstrap, configstem = tup
                 fit_file = (Path(".") / f"{bin_number}/{iteration}/{configstem}::fit_results.txt").resolve()
@@ -264,7 +281,10 @@ if __name__ == "__main__":
         else: # not verbose
             with Pool(processes=args.processes) as pool: # create a multiprocessing pool
                 res = list(tqdm(pool.imap(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
-
+        logger.info("All jobs have been processed")
+        logger.info("Gathering results")
         os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
     else:
+        logger.error("Parallelization method {args.parallel} is not currently supported!")
         print("Please select a supported parallelization method!")
+        sys.exit(1)

@@ -13,8 +13,6 @@ from itertools import combinations
 
 """
 gather_fits.py: This program collects data from AmpTools fits and stores them in a single location.
-    This is useful if you need to collect additional fit data or the program run_amptools.py exited
-    before it got to this step for some reason. Note that this code is run at the end of run_amptools.py.
     Run it without arguments for a more detailed description of its inputs.
     Author: Nathaniel Dene Hoffman - Carnegie Mellon University - GlueX Collaboration
     Creation Date: 13 July 2021
@@ -23,16 +21,17 @@ gather_fits.py: This program collects data from AmpTools fits and stores them in
 def gather(output_dir, config_file, bootstrap, n_iterations):
     """Gathers cumulative results of fits, calculates intensities with get_fit_results, and outputs to a tab-separated file
 
-    This method goes through all the bin directories, finds converged fits, and runs a C program that uses IUAmpTools/FitResults.h
-    to collect the amplitude fit values and their errors, as well as the total likelihood. A particular bin and iteration
-    converged fit represents one line in the final output file, which will be a tab-separated file with unordered rows.
-    The first column is the bin number, the second is the iteration number, and the rest are paired columns of parameters
-    and parameter errors. The input to the C program will be the fit file followed by a list of parameters.
+    This method goes through all the bin directories, finds converged fits, and
+    collects fit_results.txt files produced by run_fit.py
 
     :param output_dir: directory which contains bin subdirectories
     :type output_dir: Path
     :param config_file: template of AmpTools configuration file
     :type config_file: Path
+    :param bootstrap: collect bootstrap files
+    :type bootstrap: bool
+    :param n_iterations: number of iterations to collect
+    :type n_iterations: int
 
     :rtype: None
     :return: None
@@ -119,26 +118,27 @@ def gather(output_dir, config_file, bootstrap, n_iterations):
 """
 Script begins here:
 """
-parser = argparse.ArgumentParser(description="Runs AmpTools fits on each mass bin")
-parser.add_argument("-d", "--directory", required=True, help="the input directory (output of divide_data.py)")
-parser.add_argument("-c", "--config", required=True, help="path to the AmpTools config template file")
-parser.add_argument("--bootstrap", action='store_true', help="use bootstrapping (must have run a fit already and run bootstrap.py)")
-parser.add_argument("-n", "--niterations", type=int, required=True, help="number of iterations")
-if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
-    parser.print_help(sys.stderr)
-    sys.exit(1)
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Runs AmpTools fits on each mass bin")
+    parser.add_argument("-d", "--directory", required=True, help="the input directory (output of divide_data.py)")
+    parser.add_argument("-c", "--config", required=True, help="path to the AmpTools config template file")
+    parser.add_argument("--bootstrap", action='store_true', help="use bootstrapping (must have run a fit already and run bootstrap.py)")
+    parser.add_argument("-n", "--niterations", type=int, required=True, help="number of iterations")
+    if len(sys.argv) == 1: # if the user doesn't supply any arguments, print the help string and exit
+        parser.print_help(sys.stderr)
+        sys.exit(1)
+    args = parser.parse_args()
 
-bin_directory = Path(args.directory).resolve()
-if bin_directory.is_dir(): # check if directory with all the separated bins exists
-    print(f"Input Directory: {bin_directory}")
-else:
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.directory)
+    bin_directory = Path(args.directory).resolve()
+    if bin_directory.is_dir(): # check if directory with all the separated bins exists
+        print(f"Input Directory: {bin_directory}")
+    else:
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.directory)
 
-config_template = Path(args.config).resolve()
-if config_template.is_file(): # check if config file exists
-    print(f"Config Template: {config_template}")
-else:
-    raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
+    config_template = Path(args.config).resolve()
+    if config_template.is_file(): # check if config file exists
+        print(f"Config Template: {config_template}")
+    else:
+        raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.config)
 
-gather(bin_directory, config_template, args.bootstrap, args.niterations)
+    gather(bin_directory, config_template, args.bootstrap, args.niterations)
