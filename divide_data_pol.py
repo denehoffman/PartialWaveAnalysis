@@ -87,12 +87,12 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--accepted", help="path to the folder containing accepted Monte Carlo  AmpTools ROOT files")
     parser.add_argument("-tA", "--treeAccepted", help="optionally specify the input Accepted tree name", default='pi0eta__pi0_gg__eta_pi0pippim__pi0_gg')
     parser.add_argument("-d", "--data", help="path to the folder containing data AmpTools ROOT files")
-    parser.add_argument("-tD", "--treeData", help="optionally specify the input Data tree name", default='pi0pi0pippim__B4')
+    parser.add_argument("-tD", "--treeData", help="optionally specify the input Data tree name", default='kin')
     parser.add_argument("-b", "--background", help="path to the folder containing background AmpTools ROOT files")
     parser.add_argument("-tB", "--treeBackground", help="optionally specify the input Bakcground tree name", default='kin')
     parser.add_argument("-t", "--tree", help="optionally specify the input tree name", default='kin')
     parser.add_argument("-o", "--output", help="path to the output folder", required=True)
-    parser.add_argument("-c", "--config", help="path to a template AmpTools config file (keywords are @DATAFILE_###, @GENFILE_###, @ACCFILE_###, and @NIFILE_###)", required=True)
+    parser.add_argument("-c", "--config", help="path to a template AmpTools config file", required=True)
 
     # Handle argument errors
     if len(sys.argv) == 1: # If no arguments are provided, print the help string and exit
