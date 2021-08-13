@@ -12,7 +12,6 @@ import argparse
 from tqdm import tqdm
 from scipy.special import gammaln
 import scipy.stats as st
-import corner
 from simple_term_menu import TerminalMenu
 
 
