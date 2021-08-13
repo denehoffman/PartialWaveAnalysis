@@ -141,6 +141,8 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
                 amplitudes.append(line.split()[1].strip()) # formatted like "KsKs::NegativeRe::D2+-"
             if "polAngle" in line:
                 polarizations.append(line.split()[1].replace("polAngle", ""))
+                print("Found Polarization: " + line.split()[1].replace("polAngle", ""))
+    print("All Polarizations: " + polarizations)
     for wave_name in amplitudes:
         command = []
         wave_parts = wave_name.split("::")
