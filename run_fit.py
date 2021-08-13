@@ -134,16 +134,19 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     # Get the fit results here
     commands = []
     amplitudes = []
+    polarizations = []
     with open(destination, 'r') as config:
         for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
                 amplitudes.append(line.split()[1].strip()) # formatted like "KsKs::NegativeRe::D2+-"
+            if "polAngle" in line:
+                polarizations.append(line.split()[1].replace("polAngle", ""))
     for wave_name in amplitudes:
         command = []
         wave_parts = wave_name.split("::")
         if wave_parts[1].endswith("Re"):
             command.append("intensity")
-            for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
+            for pol in polarizations:
                 command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
                 command.append(wave_parts[0] + pol + "::" + wave_parts[1].replace("Re", "Im") + "::" + wave_parts[2])
             commands.append(command)
@@ -151,7 +154,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     for wave_name in amplitudes:
         wave_parts = wave_name.split("::")
         if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
-            command.append(wave_parts[0] + "_000" + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
+            command.append(wave_parts[0] + polarizations[0] + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
     commands.append(command)
     amp_pairs = combinations(amplitudes, 2)
     for amp_pair in amp_pairs:
@@ -162,8 +165,8 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
             if wave_parts1[1] == wave_parts2[1]: # only get pairs in the same sum, otherwise it's pointless
                 # now we should have a pair for each unique pair in PositiveRe and NegativeRe
                 command = ["phaseDiff"]
-                command.append(wave_parts1[0] + "_000" + "::" + wave_parts1[1] + "::" + wave_parts1[2])
-                command.append(wave_parts2[0] + "_000" + "::" + wave_parts2[1] + "::" + wave_parts2[2])
+                command.append(wave_parts1[0] + polarizations[0] + "::" + wave_parts1[1] + "::" + wave_parts1[2])
+                command.append(wave_parts2[0] + polarizations[0] + "::" + wave_parts2[1] + "::" + wave_parts2[2])
                 commands.append(command)
     commands.append(["intensityTotal"])
     commands.append(["likelihood"])
