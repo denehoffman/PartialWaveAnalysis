@@ -86,8 +86,8 @@ def mask_first(x):
 
 mask = df.groupby(['Bin'])['Bin'].transform(mask_first).astype(bool)
 df_filtered = df.loc[mask]
-# print(df_filtered.columns)
-# print(df_filtered.head())
+print(df_filtered.columns)
+print(df_filtered.head())
 
 bin_df = pd.read_csv(fit_results.parent / 'bin_info.txt', delimiter='\t')
 bin_width = bin_df['mass'].iloc[1] - bin_df['mass'].iloc[0]
@@ -321,4 +321,20 @@ plt.xlabel(xlabel)
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
 
+phase_tag = "_PHASE"
+phase_diffs = [column[:-len(phase_tag)] for column in df.columns.to_list() if column.endswith(phase_tag) and not "_err" in column]
+for phase_diff in phase_diffs:
+    fig, ax = plt.subplots()
+    ax2 = ax.twinx()
+    ax.errorbar(bin_df['Centers'].iloc[df_filtered['Bin']], df_filtered['total_intensity' + ac_tag_total], yerr=df_filtered['total_intensity_err' + ac_tag_total], elinewidth=0.5, fmt='none', color='k')
+    ax.hist(bin_df['Centers'].iloc[df_filtered['Bin']], bins=len(bin_df), range=(bin_df['mass'].iloc[0], bin_df['mass'].iloc[-1]), weights=df_filtered['total_intensity' + ac_tag_total], fill=False, histtype='step', color='k', label="Total") # this is a sneaky hack
+    ax2.errorbar(bin_df['Centers'].iloc[df_filtered['Bin']], df_filtered[phase_diff + phase_tag], yerr=df_filtered[phase_diff + "_err" + phase_tag], elinewidth=0.5, fmt='o', color='m')
+    plt.xlim(bin_df['Centers'].iloc[0] - 0.1, bin_df['Centers'].iloc[-1] + 0.1)
+    plt.ylim(bottom=-2*np.pi, top=2*np.pi)
+    plt.title(f"Phase Difference {phase_diff}")
+    ax.set_ylabel("Intensity")
+    ax2.set_ylabel("Phase")
+    plt.xlabel(xlabel)
+    plt.tight_layout()
+    pdf.savefig(fig, dpi=300)
 pdf.close()

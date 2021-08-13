@@ -18,6 +18,7 @@ from pathlib import Path
 from multiprocessing import Pool
 import subprocess
 import time
+from itertools import combinations
 from tqdm import tqdm
 
 def resample_params(iteration, config_file):
@@ -130,27 +131,39 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
     print("Gathering results")
     # Get the fit results here
     commands = []
+    amplitudes = []
     with open(destination, 'r') as config:
         for line in config.readlines():
             if line.startswith("amplitude"): # find amplitude lines
-                command = []
-                wave_name = line.split()[1].strip() # get the parameter name (KsKs::PositiveIm::S0+, for example)
-                wave_parts = wave_name.split("::")
-                if wave_parts[1].endswith("Re"):
-                    command.append("intensity")
-                    for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
-                        command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
-                        command.append(wave_parts[0] + pol + "::" + wave_parts[1].replace("Re", "Im") + "::" + wave_parts[2])
-                    commands.append(command)
-    with open(destination, 'r') as config:
-        command = ["realImag"]
-        for line in config.readlines():
-            if line.startswith("amplitude"):
-                wave_name = line.split()[1].strip() # get the parameter name
-                wave_parts = wave_name.split("::")
-                if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
-                    command.append(wave_parts[0] + "_000" + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
+                amplitudes.append(line.split()[1].strip()) # formatted like "KsKs::NegativeRe::D2+-"
+    for wave_name in amplitudes:
+        command = []
+        wave_parts = wave_name.split("::")
+        if wave_parts[1].endswith("Re"):
+            command.append("intensity")
+            for pol in ["_AMO", "_000", "_045", "_090", "_135"]:
+                command.append(wave_parts[0] + pol + "::" + wave_parts[1] + "::" + wave_parts[2])
+                command.append(wave_parts[0] + pol + "::" + wave_parts[1].replace("Re", "Im") + "::" + wave_parts[2])
+            commands.append(command)
+    command = ["realImag"]
+    for wave_name in amplitudes:
+        wave_name = line.split()[1].strip() # get the parameter name
+        wave_parts = wave_name.split("::")
+        if wave_parts[1].endswith("Re"): # we constrain the <reflectivity>Re and <reflectivity>Im amplitudes to be equal
+            command.append(wave_parts[0] + "_000" + "::" + wave_parts[1] + "::" + wave_parts[2]) # polarizations are constrained too
         commands.append(command)
+    amp_pairs = combinations(amplitudes, 2)
+    for amp_pair in amp_pairs:
+        wave_name1, wave_name2 = amp_pair
+        wave_parts1 = wave_name1.split("::")
+        wave_parts2 = wave_name2.split("::")
+        if wave_parts1[1].endswith("Re") and wave_parts2[1].endswith("Re"): # only need half of the sums since we constrain them
+            if wave_parts1[1] == wave_parts2[1]: # only get pairs in the same sum, otherwise it's pointless
+                # now we should have a pair for each unique pair in PositiveRe and NegativeRe
+                command = ["phaseDiff"]
+                command.append(wave_parts1[0] + "_000" + "::" + wave_parts1[1] + "::" + wave_parts1[2])
+                command.append(wave_parts2[0] + "_000" + "::" + wave_parts2[1] + "::" + wave_parts2[2])
+                commands.append(command)
     commands.append(["intensityTotal"])
     commands.append(["likelihood"])
     if bootstrap:
