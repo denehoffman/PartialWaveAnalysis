@@ -83,3 +83,16 @@ v1.0 (6 August 2021):
 * Plot intensity profiles for each wave
 * Plot statistical data for all fits
 * Bootstrap fits to get accurate error bars and confidence intervals
+
+v1.1 (13 August 2021):
+* SLURM and other parallelism methods can pick up from where they left off on fits
+* Added uproot3 support to allow plotting real data behind intensity plots
+* Added option to specify tree names other than 'kin' for files in divide_data_pol.py
+* Added verbose loading bars with enlighten
+* Corrected issue where running a second time with fewer iterations gathered iterations from the previous run
+* Added phase difference information to fit results files
+* Added plot_amps.py to examine locations of complex amplitudes
+* All plotting methods now only require one parameter pointing them to a fit directory
+* Fixed incorrect implementation of the Zlm class in generate_config.py
+* Added capability to use config files with fewer polarizations
+* Added improved logging methods
