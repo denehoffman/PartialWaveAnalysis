@@ -83,9 +83,13 @@ if __name__ == "__main__":
     parser.add_argument("--high", type=float, help="high bin in GeV")
     parser.add_argument("-n", default=0, type=int, help="number of bins (run without this argument for ~40 MeV bins)")
     parser.add_argument("-g", "--generated", help="path to the folder containing generated Monte Carlo AmpTools ROOT files")
+    parser.add_argument("-tG", "--treeGenerated", help="optionally specify the input Generated tree name", default='kin')
     parser.add_argument("-a", "--accepted", help="path to the folder containing accepted Monte Carlo  AmpTools ROOT files")
+    parser.add_argument("-tA", "--treeAccepted", help="optionally specify the input Accepted tree name", default='pi0eta__pi0_gg__eta_pi0pippim__pi0_gg')
     parser.add_argument("-d", "--data", help="path to the folder containing data AmpTools ROOT files")
+    parser.add_argument("-tD", "--treeData", help="optionally specify the input Data tree name", default='pi0pi0pippim__B4')
     parser.add_argument("-b", "--background", help="path to the folder containing background AmpTools ROOT files")
+    parser.add_argument("-tB", "--treeBackground", help="optionally specify the input Bakcground tree name", default='kin')
     parser.add_argument("-t", "--tree", help="optionally specify the input tree name", default='kin')
     parser.add_argument("-o", "--output", help="path to the output folder", required=True)
     parser.add_argument("-c", "--config", help="path to a template AmpTools config file (keywords are @DATAFILE_###, @GENFILE_###, @ACCFILE_###, and @NIFILE_###)", required=True)
@@ -184,21 +188,21 @@ if __name__ == "__main__":
         print("Splitting Generated Monte Carlo")
         generated_glob = generated_dir.glob("*.root")
         for generated_path in generated_glob:
-            os.system(f"split_mass {generated_path} {generated_path.stem + '_GEN_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+            os.system(f"split_mass {generated_path} {generated_path.stem + '_GEN_'} {args.low} {args.high} {args.n} -T {args.treeGenerated}:kin")
 
     # Process Accepted
     if args.accepted != None:
         print("Splitting Accepted Monte Carlo")
         accepted_glob = accepted_dir.glob("*.root")
         for accepted_path in accepted_glob:
-            os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACCEPT_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+            os.system(f"split_mass {accepted_path} {accepted_path.stem + '_ACCEPT_'} {args.low} {args.high} {args.n} -T {args.treeAccepted}:kin")
 
     # Process Data
     if args.data != None:
         print("Splitting Data")
         data_glob = data_dir.glob("*.root")
         for data_path in data_glob:
-            os.system(f"split_mass {data_path} {data_path.stem + '_DATA_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+            os.system(f"split_mass {data_path} {data_path.stem + '_DATA_'} {args.low} {args.high} {args.n} -T {args.treeData}:kin")
 
 
     # Process Background
@@ -206,7 +210,7 @@ if __name__ == "__main__":
         print("Splitting Background")
         background_glob = background_dir.glob("*.root")
         for background_path in background_glob:
-            os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} {args.low} {args.high} {args.n} -T {args.tree}:kin")
+            os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} {args.low} {args.high} {args.n} -T {args.treeBackground}:kin")
 
     os.chdir("..") # leave tmp directory (now in output directory)
 

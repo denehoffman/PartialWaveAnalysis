@@ -11,6 +11,7 @@ colorama >= 0.4.4
 # PartialWaveAnalysis/run_amptools.py: 25
 enlighten >= 1.10.1
 
+
 # PartialWaveAnalysis/plot_amps.py: 5,6
 # PartialWaveAnalysis/plot_bootstrap.py: 5,6
 # PartialWaveAnalysis/plot_results.py: 5,6
@@ -55,6 +56,7 @@ simple-term-menu >= 1.3.0
 # PartialWaveAnalysis/plot_amps.py: 12
 # PartialWaveAnalysis/plot_results.py: 12
 # PartialWaveAnalysis/run_amptools.py: 20
+
 # PartialWaveAnalysis/run_fit.py: 22
 tqdm >= 4.62.0
 
