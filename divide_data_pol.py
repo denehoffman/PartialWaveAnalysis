@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-divide_data_pol.py: Runs the split_mass program from halld_sim over a set of AmpTools ROOT files to divide it into mass bins.
-    Run it without arguments for a more detailed description of its inputs.
+divide_data_pol.py: Runs the split_mass program from halld_sim over a set of AmpTools
+ROOT files to divide it into mass bins. Run it without arguments for a more detailed
+description of its inputs.
 
 Author: Nathaniel Dene Hoffman - Carnegie Mellon University - GlueX Collaboration
 Creation Date: 5 July 2021
@@ -18,10 +19,11 @@ import numpy as np
 
 
 def gen_config(config_template, working_dir):
-    """
+    """gen_config creates configuration files from a template by replacing tags which
+    begin with '@' and describe paths to various files.
 
-    :param config_template: param working_dir:
-    :param working_dir: 
+    :param config_template: path to configuration template
+    :param working_dir: path to bin directory
 
     """
     main_config_destination = working_dir / config_template.name
@@ -174,9 +176,10 @@ def gen_config(config_template, working_dir):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description=
-        "Splits up an AmpTools tree into mass bins (invariant mass of all final state particles, ignoring beam and recoil proton).\n\nRun with only -o <output dir> -c <config> to add a config file to an existing output directory"
-    )
+        description=("Splits up an AmpTools tree into mass bins (invariant mass of all "
+                     "final state particles, ignoring beam and recoil proton).\n\nRun "
+                     "with only -o <output dir> -c <config> to add a config file to an "
+                     "existing output directory"))
     parser.add_argument("--low", type=float, help="low bin in GeV")
     parser.add_argument("--high", type=float, help="high bin in GeV")
     parser.add_argument(
@@ -239,11 +242,12 @@ if __name__ == "__main__":
         sys.exit(1)
     args = parser.parse_args()
     if len(sys.argv) == 5 and (args.output != None) and (args.config != None):
+        # if only config and output are provided, add the new config instead of
+        # re-splitting all the data files again
         output_dir = Path(args.output).resolve()
         config_path = Path(args.config).resolve()
-        print(
-            f"Adding config file {str(config_path)} to existing binned analysis directory {str(output_dir)}"
-        )
+        print((f"Adding config file {str(config_path)} to existing binned analysis "
+               f"directory {str(output_dir)}"))
         assert config_path.is_file(
         ), "Config file {str(config_path)} either does not exist or is not a file!"
         assert output_dir.is_dir(
@@ -265,7 +269,7 @@ if __name__ == "__main__":
     else:
         raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT),
                                 args.config)
-
+    # Collect files to divide:
     if args.generated != None:
         generated_dir = Path(args.generated).resolve()
         if generated_dir.is_dir():
@@ -323,7 +327,7 @@ if __name__ == "__main__":
             lines_to_write.append(f"{i}\t{bin_c}\n")
         bin_info_writer.writelines(lines_to_write)
 
-    tmp = output_dir / "tmp"
+    tmp = output_dir / "tmp" # do all the split_mass commands in a temporary directory
     tmp.mkdir(exist_ok=True)
     os.chdir(str(tmp))
 
@@ -331,33 +335,29 @@ if __name__ == "__main__":
         print("Splitting Generated Monte Carlo")
         generated_glob = generated_dir.glob("*.root")
         for generated_path in generated_glob:
-            os.system(
-                f"split_mass {generated_path} {generated_path.stem + '_GEN_'} {args.low} {args.high} {args.n} -T {args.treeGenerated}:kin"
-            )
+            os.system((f"split_mass {generated_path} {generated_path.stem + '_GEN_'} "
+                       f"{args.low} {args.high} {args.n} -T {args.treeGenerated}:kin"))
 
     if args.accepted != None:
         print("Splitting Accepted Monte Carlo")
         accepted_glob = accepted_dir.glob("*.root")
         for accepted_path in accepted_glob:
-            os.system(
-                f"split_mass {accepted_path} {accepted_path.stem + '_ACCEPT_'} {args.low} {args.high} {args.n} -T {args.treeAccepted}:kin"
-            )
+            os.system((f"split_mass {accepted_path} {accepted_path.stem + '_ACCEPT_'} "
+                       f"{args.low} {args.high} {args.n} -T {args.treeAccepted}:kin"))
 
     if args.data != None:
         print("Splitting Data")
         data_glob = data_dir.glob("*.root")
         for data_path in data_glob:
-            os.system(
-                f"split_mass {data_path} {data_path.stem + '_DATA_'} {args.low} {args.high} {args.n} -T {args.treeData}:kin"
-            )
+            os.system(f"split_mass {data_path} {data_path.stem + '_DATA_'} "
+                      f"{args.low} {args.high} {args.n} -T {args.treeData}:kin"))
 
     if args.background != None:
         print("Splitting Background")
         background_glob = background_dir.glob("*.root")
         for background_path in background_glob:
-            os.system(
-                f"split_mass {background_path} {background_path.stem + '_BKG_'} {args.low} {args.high} {args.n} -T {args.treeBackground}:kin"
-            )
+            os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} "
+                      f"{args.low} {args.high} {args.n} -T {args.treeBackground}:kin"))
 
     os.chdir("..")
 
@@ -365,7 +365,7 @@ if __name__ == "__main__":
         bin_files = tmp.glob(f"*_{bin_num}.root")
         for bin_file in bin_files:
             destination = output_dir / str(bin_num) / bin_file.name
-            bin_file.replace(destination)
+            bin_file.replace(destination) # move ROOT files to their proper bins
 
-    tmp.rmdir()
-    gen_config(config_path, output_dir)
+    tmp.rmdir() # get rid of tmp
+    gen_config(config_path, output_dir) # generate configurations for each bin
