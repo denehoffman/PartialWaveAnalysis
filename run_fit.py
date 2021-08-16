@@ -93,7 +93,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap,
                         format="%(asctime)s - %(levelname)s:%(message)s",
                         datefmt="%d/%m/%y %H:%M:%S")
     os.chdir(str(bin_number)) # cd into the bin directory
-    logger.info("---------- Start of Fit ----------\n\n")
+    logging.info("---------- Start of Fit ----------\n\n")
     logging.info(
         f"Starting AmpTools fit for {configstem}\tBin = {bin_number}\tIteration = {iteration}\tSeed = {seed}"
     )
