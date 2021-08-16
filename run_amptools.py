@@ -310,8 +310,11 @@ if __name__ == "__main__":
                 ).resolve()
                 log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
                 log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
-                if not fit_file.exists() and not (bootstrap and
-                                                  bootstrap_file.exists()):
+                print(fit_file.exists())
+                print(bootstrap)
+                print(bootstrap_file.exists())
+                print(not (bootstrap and boostrap_file.exists()))
+                if not fit_file.exists() or (bootstrap and not bootstrap_file.exists()):
                     status_bar.update(
                         f"Submitting SLURM Jobs: {i}/{len(run_tuple)}")
                     os.system(
@@ -362,8 +365,8 @@ if __name__ == "__main__":
                 log_out = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.out"
                 log_err = log_dir / f"{reaction}_{bin_number}_{iteration}_SLURM.err"
                 total_counter.update()
-                if not fit_file.exists() and not (bootstrap and
-                                                  bootstrap_file.exists()):
+
+                if not fit_file.exists() or (bootstrap and not bootstrap_file.exists()):
                     os.system(
                         f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}"
                     )
