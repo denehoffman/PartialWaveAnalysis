@@ -242,12 +242,12 @@ if __name__ == "__main__":
                     finished_running = True
                 time.sleep(1)
             manager.stop()
-        logger.info("All jobs have been processed")
-        logger.info("Gathering results")
+        logging.info("All jobs have been processed")
+        logging.info("Gathering results")
         os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
 
     elif args.parallel == "Pool":
-        logger.info(f"Running jobs in multiprocessing pool with {args.processes} simultaneous processes")
+        logging.info(f"Running jobs in multiprocessing pool with {args.processes} simultaneous processes")
         np.random.shuffle(bin_iterations_seed_reaction_bootstrap_configstem_tuple)
         if args.rerun:
             logging.warning("Rerun flag has been specified, existing fit files will be deleted!")
@@ -281,10 +281,10 @@ if __name__ == "__main__":
         else: # not verbose
             with Pool(processes=args.processes) as pool: # create a multiprocessing pool
                 res = list(tqdm(pool.imap(run_pool, bin_iterations_seed_reaction_bootstrap_configstem_tuple), total=args.iterations * n_bins)) # imap(x, y) spawns processes which run a method x(y)
-        logger.info("All jobs have been processed")
-        logger.info("Gathering results")
+        logging.info("All jobs have been processed")
+        logging.info("Gathering results")
         os.system(f"python3 ../gather.py -d {bin_directory} -c {config_template} {'--bootstrap' if args.bootstrap else ''} -n {args.iterations}")
     else:
-        logger.error("Parallelization method {args.parallel} is not currently supported!")
+        logging.error("Parallelization method {args.parallel} is not currently supported!")
         print("Please select a supported parallelization method!")
         sys.exit(1)

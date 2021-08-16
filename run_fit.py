@@ -80,7 +80,7 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
                         format="%(asctime)s - %(levelname)s:%(message)s",
                         datefmt="%d/%m/%y %H:%M:%S")
     os.chdir(str(bin_number)) # cd into the bin directory
-    logger.info("---------- Start of Fit ----------\n\n")
+    logging.info("---------- Start of Fit ----------\n\n")
     logging.info(f"Starting AmpTools fit for {configstem}\tBin = {bin_number}\tIteration = {iteration}\tSeed = {seed}")
     if bootstrap:
         logging.info("Bootstrapping is enabled")
@@ -191,10 +191,10 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap, configste
                     logging.error("An error occurred in get_fit_results!")
                     logging.error(process.stdout)
             output = "\t".join(outputs)
-            logger.info(f"Writing fit output to {output_file_name}")
+            logging.info(f"Writing fit output to {output_file_name}")
             out_file.write(f"{bin_number}\t{iteration}\t{convergence}\t{output}\n") # write fit results to output file (in no particular row order)
     os.chdir("../..")
-    logger.info("----------- End of Fit -----------\n\n")
+    logging.info("----------- End of Fit -----------\n\n")
 
 
 def main():
