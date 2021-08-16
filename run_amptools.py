@@ -190,8 +190,9 @@ if __name__ == "__main__":
 
     logging.basicConfig(filename=f"{reaction}.log",
                         filemode='a',
-                        format="%(asctime)s - %(levelname)s:%(message)s",
-                        datefmt="%d/%m/%y %H:%M:%S")
+                        format="%(asctime)s - %(levelname)s: %(message)s",
+                        datefmt="%d/%m/%y %H:%M:%S",
+                        level=logging.DEBUG)
 
     logging.info("Beginning AmpTools Fitting Procedure")
 
@@ -318,7 +319,7 @@ if __name__ == "__main__":
                     status_bar.update(
                         f"Submitting SLURM Jobs: {i}/{len(run_tuple)}")
                     os.system(
-                        f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}"
+                        f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}"
                     )
                     time.sleep(1)
 
@@ -368,7 +369,7 @@ if __name__ == "__main__":
 
                 if not fit_file.exists() or (bootstrap and not bootstrap_file.exists()):
                     os.system(
-                        f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --output={str(log_out)} --error={str(log_err)} --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}"
+                        f"sbatch --job-name={reaction}_{bin_number}_{iteration} --ntasks={threads} --partition={queue} --mem={memory} --time=30:00 --quiet ../run_fit_slurm.csh {bin_number} {iteration} {seed} {reaction} {str(log_dir)} {str(bootstrap)} {str(configstem)}"
                     )
 
                     n_jobs_queued = len(

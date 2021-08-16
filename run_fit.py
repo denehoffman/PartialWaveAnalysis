@@ -90,8 +90,9 @@ def run_fit(bin_number, iteration, seed, reaction, log_dir, bootstrap,
     log_file = log_dir / f"{configstem}_{bin_number}_{iteration}.log"
     logging.basicConfig(filename=log_file,
                         filemode='a',
-                        format="%(asctime)s - %(levelname)s:%(message)s",
-                        datefmt="%d/%m/%y %H:%M:%S")
+                        format="%(asctime)s - %(levelname)s: %(message)s",
+                        datefmt="%d/%m/%y %H:%M:%S",
+                        level=logging.DEBUG)
     os.chdir(str(bin_number)) # cd into the bin directory
     logging.info("---------- Start of Fit ----------\n\n")
     logging.info(
