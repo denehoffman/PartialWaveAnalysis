@@ -34,7 +34,7 @@ def plot_menu(root):
         print("No plot file chosen")
         sys.exit(1)
     else:
-        return fits[selection_index - 1].name[:-15] + "::fit_results.txt"
+        return root / Path(fits[selection_index - 1].name[:-15] + "::fit_results.txt")
 
 
 parser = argparse.ArgumentParser(
@@ -108,22 +108,22 @@ bin_df = pd.read_csv(fit_results.parent / 'bin_info.txt', delimiter='\t')
 #############
 
 if not args.uncorrected:
+    ac_tag_total = "_AC"
+    ac_tag = "_AC_INT"
     amplitudes = [
         column[:-len(ac_tag)]
         for column in df.columns.to_list()
         if column.endswith(ac_tag) and not "_err" in column
     ]
-    ac_tag_total = "_AC"
-    ac_tag = "_AC_INT"
 else:
+    ac_tag_total = ""
+    ac_tag = "_INT"
     amplitudes = [
         column[:-len(ac_tag)]
         for column in df.columns.to_list()
         if column.endswith(ac_tag) and not "_err" in column and
         not "_AC_" in column
     ]
-    ac_tag_total = ""
-    ac_tag = "_INT"
 
 wave_set = set([amp[:-1] for amp in amplitudes])
 wave_dict = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4}
