@@ -349,15 +349,15 @@ if __name__ == "__main__":
         print("Splitting Data")
         data_glob = data_dir.glob("*.root")
         for data_path in data_glob:
-            os.system(f"split_mass {data_path} {data_path.stem + '_DATA_'} "
-                      f"{args.low} {args.high} {args.n} -T {args.treeData}:kin"))
+            os.system((f"split_mass {data_path} {data_path.stem + '_DATA_'} "
+                       f"{args.low} {args.high} {args.n} -T {args.treeData}:kin"))
 
     if args.background != None:
         print("Splitting Background")
         background_glob = background_dir.glob("*.root")
         for background_path in background_glob:
-            os.system(f"split_mass {background_path} {background_path.stem + '_BKG_'} "
-                      f"{args.low} {args.high} {args.n} -T {args.treeBackground}:kin"))
+            os.system((f"split_mass {background_path} {background_path.stem + '_BKG_'} "
+                       f"{args.low} {args.high} {args.n} -T {args.treeBackground}:kin"))
 
     os.chdir("..")
 
