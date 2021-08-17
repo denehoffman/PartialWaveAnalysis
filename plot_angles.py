@@ -166,12 +166,13 @@ def get_angles(tag="DATA"):
                 bin_costhetas = np.append(bin_costhetas, costheta)
                 bin_phis = np.append(bin_phis, phi)
                 bin_weights = np.append(bin_weights, list(branches['Weight']))
-            costhetas.append(bin_costhetas)
-            phis.append(bin_phis)
-            weights.append(bin_weights)
+        costhetas.append(bin_costhetas)
+        phis.append(bin_phis)
+        weights.append(bin_weights)
     return costhetas, phis, weights
 
 ct_data, phi_data, weights_data = get_angles()
+print(np.shape(ct_data))
 if args.corrected:
     ct_gen, phi_gen, weights_gen = get_angles("GEN")
     ct_acc, phi_acc, weights_acc = get_angles("ACCEPT")
