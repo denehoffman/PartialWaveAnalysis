@@ -163,6 +163,14 @@ else:
         not "_AC_" in column
     ]
 
+phase_tag = "_PHASE"
+phase_diffs = [
+    column[:-len(phase_tag)]
+    for column in df.columns.to_list()
+    if column.endswith(phase_tag) and not "_err" in column
+]
+
+
 print(f"Plotting Amplitudes: {amplitudes}")
 
 wave_set = set([amp[:-1] for amp in amplitudes])
@@ -190,8 +198,8 @@ for bin_dir in tqdm(bin_dirs):
             if data_file.name.endswith(".root") and "DATA" in data_file.name
         ]
         for data_file in data_files:
-            with uproot.open(data_file) as df:
-                branches = df['kin'].arrays()
+            with uproot.open(data_file) as data_root:
+                branches = data_root['kin'].arrays()
                 Final_State_P4 = [
                     np.array([E, Px, Py, Pz]) for E, Px, Py, Pz in zip(
                         np.sum(branches['E_FinalState'][:, 1:], axis=1),
@@ -215,8 +223,8 @@ for bin_dir in tqdm(bin_dirs):
             if bkg_file.name.endswith(".root") and "BKG" in bkg_file.name
         ]
         for bkg_file in bkg_files:
-            with uproot.open(bkg_file) as df:
-                branches = df['kin'].arrays()
+            with uproot.open(bkg_file) as bkg_root:
+                branches = bkg_root['kin'].arrays()
                 Final_State_P4 = [
                     np.array([E, Px, Py, Pz]) for E, Px, Py, Pz in zip(
                         np.sum(branches['E_FinalState'][:, 1:], axis=1),
@@ -598,12 +606,6 @@ plt.xlabel(xlabel)
 plt.tight_layout()
 pdf.savefig(fig, dpi=300)
 
-phase_tag = "_PHASE"
-phase_diffs = [
-    column[:-len(phase_tag)]
-    for column in df.columns.to_list()
-    if column.endswith(phase_tag) and not "_err" in column
-]
 for phase_diff in phase_diffs:
     fig, ax = plt.subplots()
     ax2 = ax.twinx()

@@ -10,7 +10,7 @@ import uproot
 import awkward as ak
 import argparse
 from tqdm import tqdm
-from scipy.special import gammaln
+from scipy.special import gammaln, sph_harm
 from simple_term_menu import TerminalMenu
 import vector
 
@@ -38,8 +38,7 @@ def plot_menu(root):
 
 parser = argparse.ArgumentParser(description="Plotting tools for PartialWaveAnalysis")
 parser.add_argument("path", help="path to fit directory")
-parser.add_argument("-u", "--uncorrected", action='store_true', help="plot intensities without acceptance correction")
-parser.add_argument("-d", "--data", action='store_true', help="plot true data histogram behind intensities")
+parser.add_argument("-c", "--corrected", action='store_true', help="plot acceptance-corrected data")
 parser.add_argument("-b", "--background", action='store_true', help="plot background histogram behind intensities")
 parser.add_argument("-s", "--subtracted", action='store_true', help="plot background-subtracted data behind intensities")
 parser.add_argument("-l", "--label", default="K_SK_S", help="LaTeX formated string of particles for x-axis label (default: \"K_SK_S\")")
@@ -79,57 +78,72 @@ wave_set = set([amp[:-1] for amp in amplitudes])
 wave_dict = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4}
 waves_sorted = sorted(list(wave_set), key=lambda wave: 100 * wave_dict[wave[0]] + (-1 if wave[-1] == '-' else 1) * int(wave[1]))
 # kind of sneaky wave of sorting waves by L-letter and M-number without creating a whole new class
+amps_sorted = []
 waves_l = []
 waves_m = []
 waves_r = []
 waves_s = []
 for wave in waves_sorted:
-    if wave_dict[wave[0]] == 0:
-        waves_l += [0, 0]
-        waves_m += [0, 0]
-    else:
-        waves_l += [wave_dict[wave[0]], wave_dict[wave[0]]]
-        waves_m += [(1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1])]
-    waves_r += [1, -1]
-    reflectivity = 1 if wave[-1] == '+' else -1
-    waves_s += [reflectivity * 1, reflectivity * -1]
+    wave_pos = wave + "+"
+    if wave_pos in amplitudes:
+        if wave_dict[wave[0]] == 0:
+            waves_l += [(0, 0)]
+            waves_m += [(0, 0)]
+        else:
+            waves_l += [(wave_dict[wave[0]], wave_dict[wave[0]])]
+            waves_m += [((1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1]))]
+        waves_r += [(1, -1)]
+        waves_s += [(1, -1)]
+        amps_sorted += [wave_pos]
+    wave_neg = wave + "-"
+    if wave_neg in amplitudes:
+        if wave_dict[wave[0]] == 0:
+            waves_l += [(0, 0)]
+            waves_m += [(0, 0)]
+        else:
+            waves_l += [(wave_dict[wave[0]], wave_dict[wave[0]])]
+            waves_m += [((1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1]))]
+        waves_r += [(1, -1)]
+        waves_s += [(-1, 1)]
+        amps_sorted += [wave_neg]
 
-print(waves_l)
-print(waves_m)
+print(amps_sorted)
+print(waves_l) # list of tuples, each one has two elements which describe the two
+print(waves_m) # places where the amplitude shows up in two sums
 print(waves_r)
 print(waves_s)
 
-# Get invariant mass from data files
-bin_dirs = [bin_dir for bin_dir in fit_results.parent.iterdir() if bin_dir.is_dir()]
-phis = []
-costhetas = []
-weights = []
-print("Gathering real data for histograms")
-for i, bin_dir in tqdm(enumerate(bin_dirs)):
-    if args.data or args.background or args.subtracted:
+def get_angles(tag="DATA"):
+    # Get invariant mass from data files
+    bin_dirs = [bin_dir for bin_dir in fit_results.parent.iterdir() if bin_dir.is_dir()]
+    phis = []
+    costhetas = []
+    weights = []
+    print("Gathering data for histograms")
+    for i, bin_dir in tqdm(enumerate(bin_dirs)):
         bin_phis = np.array([])
         bin_costhetas = np.array([])
         bin_weights = np.array([])
-        data_files = [data_file for data_file in bin_dir.iterdir() if data_file.name.endswith(".root") and "DATA" in data_file.name]
+        data_files = [data_file for data_file in bin_dir.iterdir() if data_file.name.endswith(".root") and tag in data_file.name]
         for data_file in data_files:
             with uproot.open(data_file) as df:
                 branches = df['kin'].arrays()
                 recoil = vector.array({"E": branches['E_FinalState'][:,0],
-                                       "px": branches['Px_FinalState'][:,0],
-                                       "py": branches['Py_FinalState'][:,0],
-                                       "pz": branches['Pz_FinalState'][:,0]})
+                                    "px": branches['Px_FinalState'][:,0],
+                                    "py": branches['Py_FinalState'][:,0],
+                                    "pz": branches['Pz_FinalState'][:,0]})
                 p1 = vector.array({"E": branches['E_FinalState'][:,1],
-                                   "px": branches['Px_FinalState'][:,1],
-                                   "py": branches['Py_FinalState'][:,1],
-                                   "pz": branches['Pz_FinalState'][:,1]})
+                                "px": branches['Px_FinalState'][:,1],
+                                "py": branches['Py_FinalState'][:,1],
+                                "pz": branches['Pz_FinalState'][:,1]})
                 p2 = vector.array({"E": branches['E_FinalState'][:,2],
-                                   "px": branches['Px_FinalState'][:,2],
-                                   "py": branches['Py_FinalState'][:,2],
-                                   "pz": branches['Pz_FinalState'][:,2]})
+                                "px": branches['Px_FinalState'][:,2],
+                                "py": branches['Py_FinalState'][:,2],
+                                "pz": branches['Pz_FinalState'][:,2]})
                 beam = vector.array({"E": branches['E_Beam'],
-                                     "px": branches['Px_Beam'],
-                                     "py": branches['Py_Beam'],
-                                     "pz": branches['Pz_Beam']})
+                                    "px": branches['Px_Beam'],
+                                    "py": branches['Py_Beam'],
+                                    "pz": branches['Pz_Beam']})
                 resonance = p1 + p2
                 resonance_boost_vector = resonance.to_beta3()
                 beam_res = beam.boost(-resonance_boost_vector)
@@ -152,15 +166,46 @@ for i, bin_dir in tqdm(enumerate(bin_dirs)):
                 bin_costhetas = np.append(bin_costhetas, costheta)
                 bin_phis = np.append(bin_phis, phi)
                 bin_weights = np.append(bin_weights, list(branches['Weight']))
-        costhetas.append(bin_costhetas)
-        phis.append(bin_phis)
-        weights.append(bin_weights)
-if args.data:
-    print(f"Data has {len(phis)} events")
+            costhetas.append(bin_costhetas)
+            phis.append(bin_phis)
+            weights.append(bin_weights)
+    return costhetas, phis, weights
+
+ct_data, phi_data, weights_data = get_angles()
+if args.corrected:
+    ct_gen, phi_gen, weights_gen = get_angles("GEN")
+    ct_acc, phi_acc, weights_acc = get_angles("ACCEPT")
+
 
 for bin_n in range(len(bin_df)):
-    fig = plt.figure()
-    plt.hist(costhetas[bin_n], range=(-1, 1), bins=20)
+    fig, ax = plt.subplots()
+    ax2 = ax.twinx()
+    nbins = 20
+    if args.corrected:
+        ct_gen_hist, _ = np.histogram(ct_gen[bin_n], bins=nbins, range=(-1, 1), weights=weights_gen[bin_n])
+        ct_acc_hist, _ = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weights_acc[bin_n])
+        ct_acceptance_function = ct_gen_hist / ct_acc_hist
+        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
+        ct_data_corrected = ct_data_hist * ct_acceptance_function
+        ax.bar(bin_edges[:-1], ct_data_corrected, width=np.diff(bin_edges), align="edge")
+    else:
+        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
+        ax.bar(bin_edges[:-1], ct_data_hist, width=np.diff(bin_edges), align="edge")
+    xs = np.linspace(-1, 1, 2000)
+    for i, amp in enumerate(amps_sorted):
+        total = 0
+        for j in [0, 1]:
+            factor = np.sqrt(1 + waves_m[i][j] * 0.3) # Pgamma = 0.3 for now
+            if waves_r[i][j] == 1:
+                # scipy does spherical harmonics as ylm(m, l, phi, theta) for some silly reason
+                zlm = np.real(sph_harm(waves_m[i][j], waves_l[i][j], 0, np.arccos(xs))) # phi = 0
+            else:
+                zlm = np.imag(sph_harm(waves_m[i][j], waves_l[i][j], 0, np.arccos(xs))) # phi = 0
+            fit_amplitude = df_filtered[amp + '_re'].iloc[bin_n] + 1j * df_filtered[amp + '_im'].iloc[bin_n]
+            total += np.abs(fit_amplitude * zlm * factor)**2
+        ax2.plot(xs, total, ls=('-' if amp[-1] == "+" else '--'))
+    
+
     plt.title(f"Bin {bin_n}")
     plt.xlabel(r"$\cos(\theta_{GJ})$")
     pdf.savefig(dpi=300)
