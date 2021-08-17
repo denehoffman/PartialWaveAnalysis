@@ -74,16 +74,13 @@ This could also point to a different loop, but it generally means that you have 
 
 
 ## Version History
-v1.0 (6 August 2021):
-* Original set of commits after development
-* Generate configuration files with up to J=2 waves
-* Divide polarized data into invariant mass bins
-* Run multiple fit iterations with a config file for each bin
-* Add new config files to existing bin structures
-* Plot intensity profiles for each wave
-* Plot statistical data for all fits
-* Bootstrap fits to get accurate error bars and confidence intervals
 
+v1.1.1 (16 August 2021):
+* Fix logging not writing to files
+* Remove SLURM default logging
+* Fix bootstrapping plotting method not getting proper file path
+* Fix logic in run_amptools.py to run bootstrap correctly
+   
 v1.1 (13 August 2021):
 * SLURM and other parallelism methods can pick up from where they left off on fits
 * Added uproot3 support to allow plotting real data behind intensity plots
@@ -95,4 +92,14 @@ v1.1 (13 August 2021):
 * All plotting methods now only require one parameter pointing them to a fit directory
 * Fixed incorrect implementation of the Zlm class in generate_config.py
 * Added capability to use config files with fewer polarizations
-* Added improved logging methods
+* Added improved logging methods   
+
+v1.0 (6 August 2021):
+* Original set of commits after development
+* Generate configuration files with up to J=2 waves
+* Divide polarized data into invariant mass bins
+* Run multiple fit iterations with a config file for each bin
+* Add new config files to existing bin structures
+* Plot intensity profiles for each wave
+* Plot statistical data for all fits
+* Bootstrap fits to get accurate error bars and confidence intervals
