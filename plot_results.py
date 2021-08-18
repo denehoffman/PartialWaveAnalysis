@@ -630,7 +630,7 @@ for phase_diff in phase_diffs:
                  fmt='o',
                  color='m')
     plt.xlim(bin_df['Centers'].iloc[0] - 0.1, bin_df['Centers'].iloc[-1] + 0.1)
-    plt.ylim(bottom=-2 * np.pi, top=2 * np.pi)
+    plt.ylim(bottom=0, top=2 * np.pi + 0.3)
     plt.title(f"Phase Difference {phase_diff}")
     ax.set_ylabel("Intensity")
     ax2.set_ylabel("Phase")
