@@ -624,7 +624,7 @@ for phase_diff in phase_diffs:
             color='k',
             label="Total")  # this is a sneaky hack
     ax2.errorbar(bin_df['Centers'].iloc[df_filtered['Bin']],
-                 np.abs(df_filtered[phase_diff + phase_tag]),
+                 df_filtered[phase_diff + phase_tag],
                  yerr=df_filtered[phase_diff + "_err" + phase_tag],
                  elinewidth=0.5,
                  fmt='o',
