@@ -58,7 +58,7 @@ class Wave:
         else:
             reflectivity_str = "Negative"
 
-        return (f"{Wave.letter_dict.get(self.l)}-Wave\t{self.l} {m_sign}{abs(self.m)}\t"
+        return (f"{Wave.letter_dict.get(self.l)}-Wave  {self.l} {m_sign}{abs(self.m)}  "
                 f"{reflectivity_str} Reflectivity")
 
     def __hash__(self):
