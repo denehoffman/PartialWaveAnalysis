@@ -79,6 +79,7 @@ wave_dict = {'S': 0, 'P': 1, 'D': 2, 'F': 3, 'G': 4}
 waves_sorted = sorted(list(wave_set), key=lambda wave: 100 * wave_dict[wave[0]] + (-1 if wave[-1] == '-' else 1) * int(wave[1]))
 # kind of sneaky wave of sorting waves by L-letter and M-number without creating a whole new class
 amps_sorted = []
+waves_reflectivity = []
 waves_l = []
 waves_m = []
 waves_r = []
@@ -87,25 +88,25 @@ for wave in waves_sorted:
     wave_pos = wave + "+"
     if wave_pos in amplitudes:
         if wave_dict[wave[0]] == 0:
-            waves_l += [(0, 0)]
-            waves_m += [(0, 0)]
+            waves_l += [0, 0]
+            waves_m += [0, 0]
         else:
-            waves_l += [(wave_dict[wave[0]], wave_dict[wave[0]])]
-            waves_m += [((1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1]))]
-        waves_r += [(1, -1)]
-        waves_s += [(1, -1)]
-        amps_sorted += [wave_pos]
+            waves_l += [wave_dict[wave[0]], wave_dict[wave[0]]]
+            waves_m += [(1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1])]
+        waves_r += [1, -1]
+        waves_s += [1, -1]
+        amps_sorted += [wave_pos, wave_pos]
     wave_neg = wave + "-"
     if wave_neg in amplitudes:
         if wave_dict[wave[0]] == 0:
-            waves_l += [(0, 0)]
-            waves_m += [(0, 0)]
+            waves_l += [0, 0]
+            waves_m += [0, 0]
         else:
-            waves_l += [(wave_dict[wave[0]], wave_dict[wave[0]])]
-            waves_m += [((1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1]))]
-        waves_r += [(1, -1)]
-        waves_s += [(-1, 1)]
-        amps_sorted += [wave_neg]
+            waves_l += [wave_dict[wave[0]], wave_dict[wave[0]]]
+            waves_m += [(1 if wave[2] == '+' else -1) * int(wave[1]), (1 if wave[2] == '+' else -1) * int(wave[1])]
+        waves_r += [1, -1]
+        waves_s += [-1, 1]
+        amps_sorted += [wave_neg, wave_neg]
 
 print(amps_sorted)
 print(waves_l) # list of tuples, each one has two elements which describe the two
@@ -162,7 +163,6 @@ def get_angles(tag="DATA"):
                 angles = vector.array({"x": p1_res_vect.dot(x), "y": p1_res_vect.dot(y), "z": p1_res_vect.dot(z)})
                 costheta = angles.costheta
                 phi = angles.phi
-
                 bin_costhetas = np.append(bin_costhetas, costheta)
                 bin_phis = np.append(bin_phis, phi)
                 bin_weights = np.append(bin_weights, list(branches['Weight']))
@@ -172,43 +172,60 @@ def get_angles(tag="DATA"):
     return costhetas, phis, weights
 
 ct_data, phi_data, weights_data = get_angles()
-print(np.shape(ct_data))
-if args.corrected:
-    ct_gen, phi_gen, weights_gen = get_angles("GEN")
-    ct_acc, phi_acc, weights_acc = get_angles("ACCEPT")
+ct_gen, phi_gen, weights_gen = get_angles("GEN")
+ct_acc, phi_acc, weights_acc = get_angles("ACCEPT")
 
 
 for bin_n in range(len(bin_df)):
     fig, ax = plt.subplots()
-    ax2 = ax.twinx()
     nbins = 20
+    weight_total = np.zeros_like(ct_acc[bin_n])
+    for event in range(len(ct_acc[bin_n])):
+        weight_positivere = 0
+        weight_positiveim = 0
+        weight_negativere = 0
+        weight_negativeim = 0
+        for i, amp in enumerate(amps_sorted):
+            costheta = ct_acc[bin_n]
+            phi = phi_acc[bin_n]
+            fit_amplitude = df_filtered[amp + '_re'].iloc[bin_n] + 1j * df_filtered[amp + '_im'].iloc[bin_n]
+            if waves_r[i] == 1:
+                if waves_s[i] == 1:
+                    # scipy does spherical harmonics as ylm(m, l, phi, theta) for some silly reason
+                    zlm = np.real(sph_harm(waves_m[i], waves_l[i], phi[event], costheta[event]))
+                    factor = np.sqrt(1 + waves_s[i] * 0.33) # Pgamma = 0.3 for now
+                    weight_positivere += factor * zlm * fit_amplitude
+                else:
+                    zlm = np.real(sph_harm(waves_m[i], waves_l[i], phi[event], costheta[event]))
+                    factor = np.sqrt(1 + waves_s[i] * 0.33) # Pgamma = 0.3 for now
+                    weight_negativere += factor * zlm * fit_amplitude
+            else:
+                if waves_s[i] == 1:
+                    zlm = np.imag(sph_harm(waves_m[i], waves_l[i], phi[event], costheta[event]))
+                    factor = np.sqrt(1 + waves_s[i] * 0.33) # Pgamma = 0.3 for now
+                    weight_negativeim += factor * zlm * fit_amplitude
+                else:
+                    zlm = np.imag(sph_harm(waves_m[i], waves_l[i], phi[event], costheta[event]))
+                    factor = np.sqrt(1 + waves_s[i] * 0.33) # Pgamma = 0.3 for now
+                    weight_positiveim += factor * zlm * fit_amplitude
+        weight_total[event] = np.abs(weight_positivere)**2 + np.abs(weight_negativere)**2 + np.abs(weight_positiveim)**2 + np.abs(weight_negativeim)**2
+        weight_total[event] = weight_total[event] / len(ct_gen[bin_n])
+    fit_hist, bin_edges = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weight_total)
+    ax.bar(bin_edges[:-1], fit_hist, width=np.diff(bin_edges), align="edge") 
     if args.corrected:
         ct_gen_hist, _ = np.histogram(ct_gen[bin_n], bins=nbins, range=(-1, 1), weights=weights_gen[bin_n])
         ct_acc_hist, _ = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weights_acc[bin_n])
         ct_acceptance_function = ct_gen_hist / ct_acc_hist
         ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
         ct_data_corrected = ct_data_hist * ct_acceptance_function
-        ax.bar(bin_edges[:-1], ct_data_corrected, width=np.diff(bin_edges), align="edge")
+        bin_centers = bin_edges[:-1] + np.diff(bin_edges) / 2
+        ax.errorbar(bin_centers, ct_data_corrected, yerr=np.sqrt(ct_data_corrected), xerr=np.diff(bin_edges) / 2, color='k', fmt='none')
     else:
         ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
-        ax.bar(bin_edges[:-1], ct_data_hist, width=np.diff(bin_edges), align="edge")
-    xs = np.linspace(-1, 1, 2000)
-    for i, amp in enumerate(amps_sorted):
-        total = 0
-        for j in [0, 1]:
-            factor = np.sqrt(1 + waves_m[i][j] * 0.3) # Pgamma = 0.3 for now
-            if waves_r[i][j] == 1:
-                # scipy does spherical harmonics as ylm(m, l, phi, theta) for some silly reason
-                zlm = np.real(sph_harm(waves_m[i][j], waves_l[i][j], 0, np.arccos(xs))) # phi = 0
-            else:
-                zlm = np.imag(sph_harm(waves_m[i][j], waves_l[i][j], 0, np.arccos(xs))) # phi = 0
-            fit_amplitude = df_filtered[amp + '_re'].iloc[bin_n] + 1j * df_filtered[amp + '_im'].iloc[bin_n]
-            total += np.abs(fit_amplitude * zlm * factor)**2
-        ax2.plot(xs, total, ls=('-' if amp[-1] == "+" else '--'))
-    
-
+        bin_centers = bin_edges[:-1] + np.diff(bin_edges) / 2
+        ax.errorbar(bin_centers, ct_data_hist, yerr=np.sqrt(ct_data_hist), xerr=np.diff(bin_edges) / 2, color='k', fmt='none')
     plt.title(f"Bin {bin_n}")
-    plt.xlabel(r"$\cos(\theta_{GJ})$")
+    plt.xlabel(r"$\cos(\theta_{HX})$")
     pdf.savefig(dpi=300)
     plt.close()
 pdf.close()
