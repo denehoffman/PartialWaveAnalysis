@@ -53,7 +53,7 @@ best_result_by_bin = [
 
 bin_folders = [input_folder / f"{n}" for n in bin_numbers]
 for n in bin_numbers: # for each bin
-    config_file = list(bin_folders[n].glob(f"{config_name}_*.cfg"))[0]
+    config_file = list(bin_folders[n].glob(f"{config_name}_{n}.cfg"))[0]
     config_dest = config_file.parent / (config_file.stem + "_bootstrap.cfg")
     with open(config_file, "r") as config_old:
         config_old_lines = config_old.readlines() # read in the original config
