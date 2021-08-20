@@ -129,22 +129,31 @@ def get_angles(tag="DATA"):
         for data_file in data_files:
             with uproot.open(data_file) as df:
                 branches = df['kin'].arrays()
-                recoil = vector.array({"E": branches['E_FinalState'][:,0],
-                                    "px": branches['Px_FinalState'][:,0],
-                                    "py": branches['Py_FinalState'][:,0],
-                                    "pz": branches['Pz_FinalState'][:,0]})
-                p1 = vector.array({"E": branches['E_FinalState'][:,1],
-                                "px": branches['Px_FinalState'][:,1],
-                                "py": branches['Py_FinalState'][:,1],
-                                "pz": branches['Pz_FinalState'][:,1]})
-                p2 = vector.array({"E": branches['E_FinalState'][:,2],
-                                "px": branches['Px_FinalState'][:,2],
-                                "py": branches['Py_FinalState'][:,2],
-                                "pz": branches['Pz_FinalState'][:,2]})
-                beam = vector.array({"E": branches['E_Beam'],
-                                    "px": branches['Px_Beam'],
-                                    "py": branches['Py_Beam'],
-                                    "pz": branches['Pz_Beam']})
+                recoil_lab = vector.array({"E": branches['E_FinalState'][:,0],
+                                           "px": branches['Px_FinalState'][:,0],
+                                           "py": branches['Py_FinalState'][:,0],
+                                           "pz": branches['Pz_FinalState'][:,0]})
+                p1_lab = vector.array({"E": branches['E_FinalState'][:,1],
+                                       "px": branches['Px_FinalState'][:,1],
+                                       "py": branches['Py_FinalState'][:,1],
+                                       "pz": branches['Pz_FinalState'][:,1]})
+                p2_lab = vector.array({"E": branches['E_FinalState'][:,2],
+                                       "px": branches['Px_FinalState'][:,2],
+                                       "py": branches['Py_FinalState'][:,2],
+                                       "pz": branches['Pz_FinalState'][:,2]})
+                beam_lab = vector.array({"E": branches['E_Beam'],
+                                         "px": branches['Px_Beam'],
+                                         "py": branches['Py_Beam'],
+                                         "pz": branches['Pz_Beam']})
+                # boost to COM
+                com = recoil_lab + p1_lab + p2_lab
+                com_boost_vector = com.to_beta3()
+                recoil = recoil_lab.boost(-com_boost_vector)
+                p1 = p1_lab.boost(-com_boost_vector)
+                p2 = p2_lab.boost(-com_boost_vector)
+                beam = beam_lab.boost(-com_boost_vector)
+
+                # boost to resonance
                 resonance = p1 + p2
                 resonance_boost_vector = resonance.to_beta3()
                 beam_res = beam.boost(-resonance_boost_vector)
