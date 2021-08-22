@@ -174,7 +174,7 @@ def get_angles(tag="DATA", pol=""):
                 phi = angles.phi
                 bin_costhetas = np.append(bin_costhetas, costheta)
                 bin_phis = np.append(bin_phis, phi)
-                if 'Weight' in branches.keys():
+                if 'Weight' in branches:
                     bin_weights = np.append(bin_weights, list(branches['Weight']))
                 else:
                     bin_weights = np.append(bin_weights, np.ones_like(costheta))
