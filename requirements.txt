@@ -63,3 +63,6 @@ tqdm >= 4.62.0
 # PartialWaveAnalysis/plot_amps.py: 9
 # PartialWaveAnalysis/plot_results.py: 9
 uproot >= 4.0.11
+
+#PartialWaveAnalysis/plot_angles.py: 15
+vector >= 0.8.4
