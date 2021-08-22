@@ -204,6 +204,8 @@ if __name__ == "__main__":
     seeds = [np.random.randint(1, high=100000) for _ in range(args.iterations)]
     n_bins = len(
         [bin_dir for bin_dir in bin_directory.glob("*") if bin_dir.is_dir()])
+    bin_iterations_seed_reaction_bootstrap_configstem_tuple = [(i, j, seeds[j], reaction, args.bootstrap, config_template.stem) for i in range(n_bins) for j in range(args.iterations)]     
+    
     logging.info(
         f"Using {n_bins} bins and {args.iterations} iterations per bin ({n_bins * args.iterations} total fits)"
     )
