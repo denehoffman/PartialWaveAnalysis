@@ -114,7 +114,7 @@ print(waves_m) # places where the amplitude shows up in two sums
 print(waves_r)
 print(waves_s)
 
-def get_angles(tag="DATA"):
+def get_angles(tag="DATA", pol=""):
     # Get invariant mass from data files
     bin_dirs = [bin_dir for bin_dir in fit_results.parent.iterdir() if bin_dir.is_dir()]
     phis = []
@@ -125,7 +125,7 @@ def get_angles(tag="DATA"):
         bin_phis = np.array([])
         bin_costhetas = np.array([])
         bin_weights = np.array([])
-        data_files = [data_file for data_file in bin_dir.iterdir() if data_file.name.endswith(".root") and tag in data_file.name]
+        data_files = [data_file for data_file in bin_dir.iterdir() if data_file.name.endswith(".root") and tag in data_file.name and pol in data_file.name]
         for data_file in data_files:
             with uproot.open(data_file) as df:
                 branches = df['kin'].arrays()
@@ -174,19 +174,24 @@ def get_angles(tag="DATA"):
                 phi = angles.phi
                 bin_costhetas = np.append(bin_costhetas, costheta)
                 bin_phis = np.append(bin_phis, phi)
-                bin_weights = np.append(bin_weights, list(branches['Weight']))
+                if 'Weight' in branches.keys():
+                    bin_weights = np.append(bin_weights, list(branches['Weight']))
+                else:
+                    bin_weights = np.append(bin_weights, np.ones_like(costheta))
         costhetas.append(bin_costhetas)
         phis.append(bin_phis)
         weights.append(bin_weights)
     return costhetas, phis, weights
 
-ct_data, phi_data, weights_data = get_angles()
-ct_gen, phi_gen, weights_gen = get_angles("GEN")
-ct_acc, phi_acc, weights_acc = get_angles("ACCEPT")
+ct_data, phi_data, weights_data = get_angles(pol="PARA_0")
+ct_gen, phi_gen, weights_gen = get_angles("GEN", pol="PARA_0")
+ct_acc, phi_acc, weights_acc = get_angles("ACCEPT", pol="PARA_0")
 
 
+plt.rcParams["figure.figsize"] = (40, 10)
+plt.rcParams["font.size"] = 24
 for bin_n in range(len(bin_df)):
-    fig, ax = plt.subplots()
+    fig, (ax, ax2) = plt.subplots(ncols=2)
     nbins = 20
     weight_total = np.zeros_like(ct_acc[bin_n])
     for event in range(len(ct_acc[bin_n])):
@@ -220,21 +225,42 @@ for bin_n in range(len(bin_df)):
         weight_total[event] = np.abs(weight_positivere)**2 + np.abs(weight_negativere)**2 + np.abs(weight_positiveim)**2 + np.abs(weight_negativeim)**2
         weight_total[event] = weight_total[event] / len(ct_gen[bin_n])
     fit_hist, bin_edges = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weight_total)
-    ax.bar(bin_edges[:-1], fit_hist, width=np.diff(bin_edges), align="edge") 
+    #ax.bar(bin_edges[:-1], fit_hist, width=np.diff(bin_edges), align="edge") 
     if args.corrected:
         ct_gen_hist, _ = np.histogram(ct_gen[bin_n], bins=nbins, range=(-1, 1), weights=weights_gen[bin_n])
+        phi_gen_hist, _ = np.histogram(phi_gen[bin_n], bins=nbins, range=(-np.pi, np.pi), weights=weights_gen[bin_n])
         ct_acc_hist, _ = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weights_acc[bin_n])
+        phi_acc_hist, _ = np.histogram(phi_acc[bin_n], bins=nbins, range=(-np.pi, np.pi), weights=weights_acc[bin_n])
         ct_acceptance_function = ct_gen_hist / ct_acc_hist
-        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
+        phi_acceptance_function = phi_gen_hist / phi_acc_hist
+        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=nbins, weights=weights_data[bin_n])
+        phi_data_hist, phi_bin_edges = np.histogram(phi_data[bin_n], range=(-np.pi, np.pi), bins=nbins, weights=weights_data[bin_n])
         ct_data_corrected = ct_data_hist * ct_acceptance_function
+        phi_data_corrected = phi_data_hist * phi_acceptance_function
         bin_centers = bin_edges[:-1] + np.diff(bin_edges) / 2
+        phi_bin_centers = phi_bin_edges[:-1] + np.diff(phi_bin_edges) / 2
         ax.errorbar(bin_centers, ct_data_corrected, yerr=np.sqrt(ct_data_corrected), xerr=np.diff(bin_edges) / 2, color='k', fmt='none')
+        ax2.errorbar(phi_bin_centers, phi_data_corrected, yerr=np.sqrt(phi_data_corrected), xerr=np.diff(phi_bin_edges) / 2, color='k', fmt='none')
     else:
-        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=20, weights=weights_data[bin_n])
+        ct_gen_hist, _ = np.histogram(ct_gen[bin_n], bins=nbins, range=(-1, 1), weights=weights_gen[bin_n])
+        phi_gen_hist, _ = np.histogram(phi_gen[bin_n], bins=nbins, range=(-np.pi, np.pi), weights=weights_gen[bin_n])
+        ct_acc_hist, _ = np.histogram(ct_acc[bin_n], bins=nbins, range=(-1, 1), weights=weights_acc[bin_n])
+        phi_acc_hist, _ = np.histogram(phi_acc[bin_n], bins=nbins, range=(-np.pi, np.pi), weights=weights_acc[bin_n])
+        ct_data_hist, bin_edges = np.histogram(ct_data[bin_n], range=(-1, 1), bins=nbins, weights=weights_data[bin_n])
+        phi_data_hist, phi_bin_edges = np.histogram(phi_data[bin_n], range=(-np.pi, np.pi), bins=nbins, weights=weights_data[bin_n])
         bin_centers = bin_edges[:-1] + np.diff(bin_edges) / 2
+        phi_bin_centers = phi_bin_edges[:-1] + np.diff(phi_bin_edges) / 2
         ax.errorbar(bin_centers, ct_data_hist, yerr=np.sqrt(ct_data_hist), xerr=np.diff(bin_edges) / 2, color='k', fmt='none')
+        ax2.errorbar(phi_bin_centers, phi_data_hist, yerr=np.sqrt(phi_data_hist), xerr=np.diff(phi_bin_edges) / 2, color='k', fmt='none')
+        #ax.errorbar(bin_centers, ct_acc_hist, yerr=np.sqrt(ct_acc_hist), xerr=np.diff(bin_edges) / 2, color='b', fmt='none')
+        #ax2.errorbar(phi_bin_centers, phi_acc_hist, yerr=np.sqrt(phi_acc_hist), xerr=np.diff(phi_bin_edges) / 2, color='b', fmt='none')
+        #ax.errorbar(bin_centers, ct_gen_hist, yerr=np.sqrt(ct_gen_hist), xerr=np.diff(bin_edges) / 2, color='g', fmt='none')
+        #ax2.errorbar(phi_bin_centers, phi_gen_hist, yerr=np.sqrt(phi_gen_hist), xerr=np.diff(phi_bin_edges) / 2, color='g', fmt='none')
+    ax.set_ylim(0)
+    ax2.set_ylim(0)
     plt.title(f"Bin {bin_n}")
-    plt.xlabel(r"$\cos(\theta_{HX})$")
+    ax.set_xlabel(r"$\cos(\theta_{HX})$")
+    ax2.set_xlabel(r"$\phi_{HX}$")
     pdf.savefig(dpi=300)
     plt.close()
 pdf.close()
