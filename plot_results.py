@@ -146,14 +146,6 @@ bin_df['Centers'] = np.linspace(bin_df['mass'].iloc[0] + bin_width / 2,
                                 bin_df['mass'].iloc[-1] - bin_width / 2,
                                 len(bin_df))
 if not args.uncorrected:
-    ac_tag = "_AC_INT"
-    ac_tag_total = "_AC"
-    amplitudes = [
-        column[:-len(ac_tag)]
-        for column in df.columns.to_list()
-        if column.endswith(ac_tag) and not "_err" in column
-    ]
-else:
     ac_tag = "_INT"
     ac_tag_total = ""
     amplitudes = [
@@ -161,6 +153,14 @@ else:
         for column in df.columns.to_list()
         if column.endswith(ac_tag) and not "_err" in column and
         not "_AC_" in column
+    ]
+else:
+    ac_tag = "_AC_INT"
+    ac_tag_total = "_AC"
+    amplitudes = [
+        column[:-len(ac_tag)]
+        for column in df.columns.to_list()
+        if column.endswith(ac_tag) and not "_err" in column
     ]
 
 print(f"Plotting Amplitudes: {amplitudes}")
